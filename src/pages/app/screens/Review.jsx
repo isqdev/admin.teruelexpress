@@ -4,7 +4,7 @@ export function Review() {
   return (
     <>
       <SectionApp>
-          Avaliar
+          Avaliacoes
       </SectionApp>
     </>
   );

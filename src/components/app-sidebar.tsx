@@ -26,9 +26,9 @@ const items = [
     icon: Package,
   },
   {
-    title: "Meus fretes",
-    url: "/app/meus-fretes",
-    icon: Cube,
+    title: "Solicitações",
+    url: "/app/solicitacoes",
+    icon: Package,
   },
   {
     title: "Rotas atendidas",
@@ -36,8 +36,8 @@ const items = [
     icon: Truck,
   },
   {
-    title: "Avalie nosso serviço",
-    url: "/app/avaliar",
+    title: "Avaliacoes",
+    url: "/app/avaliacoes",
     icon: Star,
   },
 ]
