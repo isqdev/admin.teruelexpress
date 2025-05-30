@@ -8,7 +8,7 @@ export function AppHeader({ screenTitle }: { screenTitle: string }) {
       <Link to="/app/home">
         <ArrowLeft className="text-black size-8 icon" />
       </Link>
-      <h2 className="text-center flex-auto">{screenTitle}</h2>
+      <h3 className="text-center flex-auto ">{screenTitle}</h3>
     </div>
   );
 }
