@@ -1,4 +1,4 @@
-import { Button, ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel, InputMessage, SectionApp, AppHeader, Modal, Shape, ModalConfirmation} from "@/components";
+import { ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel, InputMessage, Modal, SectionApp, AppHeader, Shape } from "@/components";
 import * as React from "react";
 import {
   flexRender,
@@ -30,14 +30,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import {Button as ButtonShad} from "@/components/ui/button"
+import {Button} from "@/components/ui/button"
 
-export function Orders() {
+
+export function ManageRoutes() {
+
   return (
     <>
       <SectionApp>
-        <AppHeader screenTitle="Solicitações" />
-        <DataTableDemo />
+            <AppHeader screenTitle="Gerenciar rotas"/>
+            <RoutesDataTable/>
       </SectionApp>
     </>
   );
@@ -78,28 +80,6 @@ const data = [
 
 const columns = [
   {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={value => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => (
@@ -109,13 +89,13 @@ const columns = [
   {
     accessorKey: "email",
     header: ({ column }) => (
-      <ButtonShad
+      <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
         Email
         <ArrowUpDown />
-      </ButtonShad>
+      </Button>
     ),
     cell: ({ row }) => <div className="lowercase">{row.getValue("email")}</div>,
   },
@@ -141,10 +121,10 @@ const columns = [
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <ButtonShad variant="ghost" className="h-8 w-8 p-0">
+            <Button variant="ghost" className="h-8 w-8 p-0">
               <span className="sr-only">Open menu</span>
               <MoreHorizontal />
-            </ButtonShad>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
@@ -163,7 +143,7 @@ const columns = [
   },
 ];
 
-function DataTableDemo() {
+function RoutesDataTable() {
   const [sorting, setSorting] = React.useState([]);
   const [columnFilters, setColumnFilters] = React.useState([]);
   const [columnVisibility, setColumnVisibility] = React.useState({});
@@ -202,9 +182,9 @@ function DataTableDemo() {
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <ButtonShad variant="outline" className="ml-auto">
+            <Button variant="outline" className="ml-auto">
               Columns <ChevronDown />
-            </ButtonShad>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {table
@@ -246,7 +226,6 @@ function DataTableDemo() {
               table.getRowModel().rows.map(row => (
                 <TableRow
                   key={row.id}
-                  className="hover:cursor-pointer"
                   onClick={() => setSelectedRow(row.original)}
                   data-state={row.getIsSelected() && "selected"}
                 >
@@ -276,43 +255,24 @@ function DataTableDemo() {
           {table.getFilteredRowModel().rows.length} row(s) selected.
         </div>
         <div className="space-x-2">
-          <ButtonShad
+          <Button
             variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
             Previous
-          </ButtonShad>
-          <ButtonShad
+          </Button>
+          <Button
             variant="outline"
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
             Next
-          </ButtonShad>
+          </Button>
         </div>
       </div>
-      <ModalOrders
-        open={!!selectedRow}
-        data={selectedRow}
-        onClose={() => setSelectedRow(null)}
-      />
-      {/* <ModalConfirmation message="Deseja realmente cancelar este pedido?" open={!!selectedRow} onClose={() => setSelectedRow(null)} action={() => console.log("Oie")}/> */}
     </div>
   );
-}
-
-function ModalOrders({ open, data, onClose}) {
-  if (!open) return null; 
-
-  return (
-    <Modal open={open} data={data} onClose={onClose} >
-      {data.amount}
-      <Button onClick={onClose}>
-        <ButtonText className="text-center">Fechar modal</ButtonText>
-      </Button>
-    </Modal>
-  )
 }

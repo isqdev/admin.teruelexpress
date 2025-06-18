@@ -1,10 +1,10 @@
-import { Button, ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel, InputMessage, SectionApp, Shape } from "@/components";
+import { Button, ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel, InputMessage, SectionApp, AppHeader, Shape } from "@/components";
 
 export function Review() {
   return (
     <>
       <SectionApp>
-          Avaliacoes
+          <AppHeader screenTitle="Avaliações"/>
       </SectionApp>
     </>
   );
