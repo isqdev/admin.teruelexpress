@@ -55,7 +55,7 @@ export function Budget() {
                 <p className="pb-4 grid col-span-2 pt-4">Preencha o formulário a seguir para solicitar um orçamento para seu frete.</p>
                 <form className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:col-span-2">
                     <Shape className="border border-gray-600">
-                        <h3 className="pb-2">Endereço origem</h3>
+                        <h4 className="pb-2">Endereço origem</h4>
                         <AddressForm
                             register={register}
                             errors={errors.origin || {}}
@@ -68,7 +68,7 @@ export function Budget() {
                         />
                     </Shape>
                     <Shape className="border border-gray-600">
-                        <h3 className="pb-2">Endereço destino</h3>
+                        <h4 className="pb-2">Endereço destino</h4>
                         <AddressForm
                             register={register}
                             errors={errors.destination || {}}
@@ -82,7 +82,7 @@ export function Budget() {
                     </Shape>
                     <div className="xl:grid xl:grid-cols-4 col-span-2 gap-6">
                         <Shape className="border border-gray-600 xl:col-span-3">
-                            <h3 className="pb-2">Dimensões da carga</h3>
+                            <h4 className="pb-2">Dimensões da carga</h4>
                             <div>
                                 <MeasuresForms
                                     register={register}
