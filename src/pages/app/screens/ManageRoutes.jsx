@@ -1,4 +1,4 @@
-import { ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel, InputMessage, Modal, SectionApp, AppHeader, Shape } from "@/components";
+import { Button, ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel, InputMessage, Modal, SectionApp, AppHeader, Shape, ModalSm } from "@/components";
 import * as React from "react";
 import {
   flexRender,
@@ -30,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { Button } from "@/components/ui/button"
+import { Button as ButtonShad } from "@/components/ui/button"
 import { useState } from "react";
 import { useEffect } from "react";
 import { MapPin } from "phosphor-react";
@@ -40,18 +40,19 @@ import { fetchCities } from "@/services/ibge";
 
 
 export function ManageRoutes() {
-
+  const [showModal, setShowModal] = useState(false);
+  
   return (
     <>
       <SectionApp>
         <AppHeader screenTitle="Gerenciar rotas" />
         <RoutesDataTable />
-        <div className="relative">
-          <div className="place-self-end">
-            <CitySearch/>
-          </div>
-        </div>
-
+        <Button onClick={() => setShowModal(true)}>
+          <ButtonText>
+            Adicionar cidade
+          </ButtonText>
+        </Button>
+        <ModalAddCity open={showModal} onClose={() => setShowModal(false)}/>
       </SectionApp>
     </>
   );
@@ -165,9 +166,9 @@ function RoutesDataTable() {
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
+            <ButtonShad variant="outline" className="ml-auto">
               Columns <ChevronDown />
-            </Button>
+            </ButtonShad>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {table
@@ -239,22 +240,22 @@ function RoutesDataTable() {
           {table.getFilteredRowModel().rows.length} row(s) selected.
         </div>
         <div className="space-x-2">
-          <Button
+          <ButtonShad
             variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
             Previous
-          </Button>
-          <Button
+          </ButtonShad>
+          <ButtonShad
             variant="outline"
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
             Next
-          </Button>
+          </ButtonShad>
         </div>
       </div>
     </div>
@@ -296,8 +297,8 @@ function CitySearch( ) {
   };
 
   return (
-    <div className="relative w-80">
-      <InputLabel>Adicionar cidade</InputLabel>
+    <div className="relative ">
+      <InputLabel>Cidade</InputLabel>
       <InputRoot>
         <InputIcon>
           <MapPin className="icon" />
@@ -315,3 +316,20 @@ function CitySearch( ) {
     </div>
   );
 };
+
+function ModalAddCity({ onClose, open }) {
+  return (
+    <ModalSm onClose={onClose} open={open}>
+      <h4>Adicionar cidade</h4>
+      <InputLabel>Estado</InputLabel>
+      <InputRoot className="bg-gray-50">
+        <InputIcon>
+          <MapPin className="icon" />
+        </InputIcon>
+        <p>Paraná</p>
+      </InputRoot>
+
+      <CitySearch/>
+    </ModalSm>
+  )
+}

@@ -1,4 +1,4 @@
-import { Button, ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel, InputMessage, SectionApp, AppHeader, Modal, Shape, ModalConfirmation} from "@/components";
+import { Button, ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel, InputMessage, SectionApp, AppHeader, Modal, Shape, ModalConfirm} from "@/components";
 import * as React from "react";
 import {
   flexRender,
@@ -299,7 +299,6 @@ function DataTableDemo() {
         data={selectedRow}
         onClose={() => setSelectedRow(null)}
       />
-      {/* <ModalConfirmation message="Deseja realmente cancelar este pedido?" open={!!selectedRow} onClose={() => setSelectedRow(null)} action={() => console.log("Oie")}/> */}
     </div>
   );
 }
@@ -308,7 +307,7 @@ function ModalOrders({ open, data, onClose}) {
   if (!open) return null; 
 
   return (
-    <Modal open={open} data={data} onClose={onClose} >
+    <Modal open={open} data={data} onClose={onClose}>
       {data.amount}
       <Button onClick={onClose}>
         <ButtonText className="text-center">Fechar modal</ButtonText>
