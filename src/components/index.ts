@@ -5,4 +5,4 @@ export { InputRoot, InputField, InputIcon, InputLabel, InputMessage } from "./In
 export { Section, SectionBox, SectionApp } from "./Section";
 export { Shape } from "./Shape";
 export { AppHeader } from "./AppHeader";
-export { Modal, ModalConfirm } from "./Modal";
+export { Modal, ModalSm, ModalConfirm } from "./Modal";

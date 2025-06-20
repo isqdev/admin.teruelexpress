@@ -67,7 +67,7 @@ export function ModalSm({
     >
       <div
         className={twMerge(
-          "p-4 sm:p-6 sm:m-5 w-full rounded-2xl bg-white max-w-md",
+          "p-4 sm:p-6 m-5 w-full rounded-2xl bg-white max-w-md",
           className
         )}
         onClick={(e) => e.stopPropagation()}
