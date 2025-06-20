@@ -4,14 +4,54 @@ import React from "react";
 import { twMerge } from "tailwind-merge";
 import { Button, ButtonText } from "./Button";
 
+// interface ModalProps extends ComponentProps<"div"> {
+//   children?: ReactNode;
+//   data?: any;
+//   open?: boolean;
+//   onClose?: () => void;
+// }
+
 interface ModalProps extends ComponentProps<"div"> {
-  children?: ReactNode;
-  data?: any;
-  open?: boolean;
-  onClose?: () => void;
+  open: boolean;
+  onClose: () => void;
+  width?: "md" | "lg" ;
 }
 
+const widthMap = {
+  md: "max-w-xl",
+  lg: "max-w-4xl",
+};
+
 export function Modal({
+  className,
+  children,
+  open = false,
+  onClose,
+  width = "lg",
+  ...props
+}: ModalProps) {
+  if (!open) return null;
+
+  return (
+    <div
+      className={`fixed inset-0 z-50 flex sm:items-center sm:justify-center bg-black/30`}
+      onClick={onClose}
+    >
+      <div
+        className={twMerge(
+          `p-4 sm:p-6 m-5 w-full rounded-2xl bg-white ${widthMap[width]}`,
+          className
+        )}
+        onClick={(e) => e.stopPropagation()}
+        {...props}
+      >
+        {children || "vazio"}
+      </div>
+    </div>
+  );
+}
+
+export function ModalSm({
   className,
   children,
   open = false,
@@ -22,63 +62,55 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-10 flex sm:items-center sm:justify-center bg-black/30"
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/30`}
       onClick={onClose}
     >
       <div
         className={twMerge(
-          "p-6 min-h-screen sm:min-h-0 sm:max-w-3xl w-full sm:aspect-[4/3] rounded-2xl bg-white",
+          "p-4 sm:p-6 sm:m-5 w-full rounded-2xl bg-white max-w-md",
           className
         )}
-        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+        onClick={(e) => e.stopPropagation()}
         {...props}
       >
-        <div>{children ? children : "--vazio--"}</div>
+        {children || "vazio"}
       </div>
     </div>
   );
 }
 
-interface ModalConfirmationProps extends ComponentProps<"div"> {
+
+interface ModalConfirmProps extends ComponentProps<"div"> {
   children?: ReactNode;
   data?: any;
   open?: boolean;
   message?: string;
   textLeft?: string;
   textRight?: string;
+  actionWord?: string;
   onClose?: () => void;
   action?: () => void;
 }
 
-export function ModalConfirmation({
+export function ModalConfirm({
   className,
   children,
   open = false,
   onClose,
   message,
+  actionWord,
   action,
   ...props
-}: ModalConfirmationProps) {
+}: ModalConfirmProps) {
   if (!open) return null;
 
   const handleAction = () => {
-    if (onClose) onClose();
     if (action) action();
+    if (onClose) onClose();
   }
 
   return (
-    <div
-      className="fixed inset-0 z-10 flex items-center justify-center p-5 bg-black/30"
-      onClick={onClose}
-    >
-      <div
-        className={twMerge(
-          "p-4 sm:p-6 max-w-md w-full aspect-[4/1] rounded-2xl bg-white",
-          className
-        )}
-        onClick={(e) => e.stopPropagation()}
-        {...props}
-      >
+      <ModalSm open={open} onClose={onClose}>
         <div className="flex flex-col justify-between gap-4">
           <div className="flex items-center justify-around gap-4">
             <Warning className="icon text-gray-600" size={32} />
@@ -89,11 +121,10 @@ export function ModalConfirmation({
               <ButtonText className="text-center">Voltar</ButtonText>
             </Button>
             <Button className="bg-red-50 text-danger-base h-10 sm:h-12" onClick={handleAction}>
-              <ButtonText className="text-center">Excluir</ButtonText>
+              <ButtonText className="text-center">{actionWord}</ButtonText>
             </Button>            
           </div>
-        </div>
-      </div>
-    </div>
+          </div>
+       </ModalSm>
   );
 }
