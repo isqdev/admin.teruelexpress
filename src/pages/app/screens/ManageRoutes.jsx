@@ -30,7 +30,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import {Button} from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
+import { useState } from "react";
+import { useEffect } from "react";
+import { MapPin } from "phosphor-react";
+import { normalize } from "../../../lib/utils";
+
+import { fetchCities } from "@/services/ibge";
 
 
 export function ManageRoutes() {
@@ -38,8 +44,14 @@ export function ManageRoutes() {
   return (
     <>
       <SectionApp>
-            <AppHeader screenTitle="Gerenciar rotas"/>
-            <RoutesDataTable/>
+        <AppHeader screenTitle="Gerenciar rotas" />
+        <RoutesDataTable />
+        <div className="relative">
+          <div className="place-self-end">
+            <CitySearch/>
+          </div>
+        </div>
+
       </SectionApp>
     </>
   );
@@ -48,33 +60,38 @@ export function ManageRoutes() {
 const data = [
   {
     id: "m5gr84i9",
-    amount: 316,
-    status: "success",
-    email: "ken99@example.com",
+    cidade: "Maringá",
+    estado: "PR",
+    status: "ativo",
+    fakeid: 1,
   },
   {
     id: "3u1reuv4",
-    amount: 242,
-    status: "success",
-    email: "Abe45@example.com",
+    cidade: "Londrina",
+    estado: "PR",
+    status: "inativo",
+    fakeid: 2,
   },
   {
     id: "derv1ws0",
-    amount: 837,
-    status: "processing",
-    email: "Monserrat44@example.com",
+    cidade: "Paranavaí",
+    estado: "PR",
+    status: "ativo",
+    fakeid: 3,
   },
   {
     id: "5kma53ae",
-    amount: 874,
-    status: "success",
-    email: "Silas22@example.com",
+    cidade: "Apucarana",
+    estado: "PR",
+    status: "inativo",
+    fakeid: 4,
   },
   {
     id: "bhqecj4p",
-    amount: 721,
-    status: "failed",
-    email: "carmella@example.com",
+    cidade: "Sarandi",
+    estado: "PR",
+    status: "ativo",
+    fakeid: 5,
   },
 ];
 
@@ -87,59 +104,25 @@ const columns = [
     ),
   },
   {
-    accessorKey: "email",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Email
-        <ArrowUpDown />
-      </Button>
+    accessorKey: "cidade",
+    header: "Cidade",
+    cell: ({ row }) => (
+      <div className="capitalize">{row.getValue("cidade")}</div>
     ),
-    cell: ({ row }) => <div className="lowercase">{row.getValue("email")}</div>,
   },
   {
-    accessorKey: "amount",
-    header: () => <div className="text-right">Amount</div>,
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("amount"));
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(amount);
-
-      return <div className="text-right font-medium">{formatted}</div>;
-    },
+    accessorKey: "estado",
+    header: "Estado",
+    cell: ({ row }) => (
+      <div className="capitalize">{row.getValue("estado")}</div>
+    ),
   },
   {
-    id: "actions",
-    enableHiding: false,
-    cell: ({ row }) => {
-      const payment = row.original;
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(payment.id)}
-            >
-              Copy payment ID
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>View customer</DropdownMenuItem>
-            <DropdownMenuItem>View payment details</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    },
+    accessorKey: "fakeid",
+    header: "ID",
+    cell: ({ row }) => (
+      <div className="capitalize">{row.getValue("fakeid")}</div>
+    ),
   },
 ];
 
@@ -171,7 +154,7 @@ function RoutesDataTable() {
 
   return (
     <div className="w-full">
-      <div className="flex items-center py-4">
+      {/* <div className="flex items-center py-4">
         <Input
           placeholder="Filter emails..."
           value={table.getColumn("email")?.getFilterValue() ?? ""}
@@ -202,20 +185,20 @@ function RoutesDataTable() {
               ))}
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
+      </div> */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map(header => (
-                  <TableHead key={header.id}>
+                  <TableHead key={header.id} className="text-left font-bold">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -228,6 +211,7 @@ function RoutesDataTable() {
                   key={row.id}
                   onClick={() => setSelectedRow(row.original)}
                   data-state={row.getIsSelected() && "selected"}
+                  className="text-left"
                 >
                   {row.getVisibleCells().map(cell => (
                     <TableCell key={cell.id}>
@@ -276,3 +260,58 @@ function RoutesDataTable() {
     </div>
   );
 }
+
+function CitySearch( ) {
+  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isWriting, setIsWriting] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+
+
+  useEffect(() => {
+    const fetchCitiesApi = async () => {
+        const data = await fetchCities();
+        return data;
+        };
+        fetchCitiesApi().then(data => setSuggestions(data));
+    }, []);
+
+  const handleChange = (event) => {
+    const inputValue = event.target.value;
+    setInputValue(inputValue);
+
+    if (isWriting === false) setIsWriting(true);
+    console.log(suggestions);
+    console.log(typeof(suggestions));
+    const filteredSuggestions = suggestions.filter(suggestion => (normalize(suggestion).includes(normalize(inputValue)))
+    )
+
+    setFilteredSuggestions(filteredSuggestions);
+  };
+
+  const handleSelect = (value) => {
+    setInputValue(value);
+    setFilteredSuggestions([]);
+    setIsWriting(false);
+  };
+
+  return (
+    <div className="relative w-80">
+      <InputLabel>Adicionar cidade</InputLabel>
+      <InputRoot>
+        <InputIcon>
+          <MapPin className="icon" />
+        </InputIcon>
+        <InputField value={inputValue} onChange={handleChange} placeholder="Ex: Paranavaí" onFocus={() => { if (normalize(inputValue) === normalize(filteredSuggestions)) setIsWriting(false); else setIsWriting(true) }} onBlur={() => { if (normalize(inputValue) === normalize(filteredSuggestions[0])) { setInputValue(filteredSuggestions[0]); } else { setIsWriting(true); } setIsWriting(false) }} />
+      </InputRoot>
+
+      {isWriting && <ul className="bg-gray-50 rounded-2xl absolute top-full z-50 w-full">
+        {filteredSuggestions.map((suggestion, index) => (
+          <li key={index} onMouseDown={() => handleSelect(suggestion)} onBlur={() => setIsWriting(false)}>
+            <p className="hover:bg-gray-100 hover:cursor-pointer rounded-2xl overflow-hidden pl-5 py-2 "> {suggestion}</p>
+          </li>
+        ))}
+      </ul>}
+    </div>
+  );
+};
