@@ -37,7 +37,7 @@ import { MapPin, X } from "phosphor-react";
 import { normalize } from "../../../lib/utils";
 
 import { fetchCities } from "@/services/ibge";
-import { setInfo, getInfo, updateInfo } from "@/services/cities";
+import { setInfo, getInfo, updateInfo, updateStatus } from "@/services/cities";
 
 
 export function ManageRoutes() {
@@ -61,24 +61,19 @@ export function ManageRoutes() {
   );
 }
 
-const getColumns = ({ onCancelClick }) => [
+const getColumns = ({ onCancelClick, onStatusClick }) => [
   {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) =>
-    // (
     {
       return (
-        <Button className="bg-transparent h-8 w-8 p-0 hover:cursor-pointer">
-          <div className="capitalize"
-          // onClick={() => {row.getValue("status") === "ativo" ? "inativo" : "ativo"}} 
-          >
-            {row.getValue("status")}
-          </div>
+        <Button className="bg-transparent h-8 w-8 p-0 hover:cursor-pointer"
+        onClick={() => onStatusClick(row.original)}>
+          <div className="capitalize">{row.getValue("status")}</div>
         </Button>
       );
     },
-    // ),
   },
   {
     accessorKey: "cidade",
@@ -127,7 +122,8 @@ function RoutesDataTable() {
   const [selectedRow, setSelectedRow] = React.useState(null);
 
   const columns = getColumns({
-    onCancelClick: setSelectedRow
+    onCancelClick: setSelectedRow,
+    onStatusClick: handleStatus
   })
 
   const handleCancel = () => {
@@ -135,6 +131,10 @@ function RoutesDataTable() {
 
     setTableData(updateInfo(selectedRow.id));
     setSelectedRow(null);
+  };
+
+  function handleStatus(row){
+    setTableData(updateStatus(row.id));
   };
 
   const table = useReactTable({

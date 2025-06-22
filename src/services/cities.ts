@@ -55,3 +55,15 @@ export function updateInfo(id: number): CidadesAtendidasResponse[] | null {
     setInfo(updated);
     return updated;
 }
+
+export function updateStatus(id: number): CidadesAtendidasResponse[] | null {
+    const stored = getInfo();
+    const updated = stored ? stored.map(item => {
+        if(item.id === id){
+            item.status === "ativo" ? item.status = "inativo" : item.status = "ativo"
+        }
+        return item
+    }) : null; 
+    setInfo(updated);
+    return updated;
+}
