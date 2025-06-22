@@ -37,25 +37,27 @@ import { MapPin, X } from "phosphor-react";
 import { normalize } from "../../../lib/utils";
 
 import { fetchCities } from "@/services/ibge";
-import { setInfo, getInfo, updateInfo, updateStatus } from "@/services/cities";
+import { setInfo, getInfo, updateInfo, updateStatus, addInfo } from "@/services/cities";
 
 
 export function ManageRoutes() {
   const [showModal, setShowModal] = useState(false);
-  // getInfo() ?? setInfo();
-  setInfo();
+  const [newCity, setNewCity] = useState('');
+
+  getInfo() ?? setInfo();
+  // setInfo();
 
   return (
     <>
       <SectionApp>
         <AppHeader screenTitle="Gerenciar rotas" />
-        <RoutesDataTable />
+        <RoutesDataTable newCity={newCity}/>
         <Button onClick={() => setShowModal(true)}>
           <ButtonText>
             Adicionar cidade
           </ButtonText>
         </Button>
-        <ModalAddCity open={showModal} onClose={() => setShowModal(false)} />
+        <ModalAddCity open={showModal} onClose={() => setShowModal(false)} newCity={newCity} setNewCity={setNewCity} />
       </SectionApp>
     </>
   );
@@ -113,13 +115,17 @@ const getColumns = ({ onCancelClick, onStatusClick }) => [
   },
 ];
 
-function RoutesDataTable() {
+function RoutesDataTable({ newCity }) {
   const [sorting, setSorting] = React.useState([]);
   const [columnFilters, setColumnFilters] = React.useState([]);
   const [columnVisibility, setColumnVisibility] = React.useState({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [tableData, setTableData] = React.useState(getInfo());
   const [selectedRow, setSelectedRow] = React.useState(null);
+
+  React.useEffect(() => {
+    setTableData(getInfo())
+    }, [getInfo()])
 
   const columns = getColumns({
     onCancelClick: setSelectedRow,
@@ -271,7 +277,7 @@ function RoutesDataTable() {
   );
 }
 
-function CitySearch() {
+function CitySearch({ setNewCity, newCity }) {
   const [filteredSuggestions, setFilteredSuggestions] = useState([]);
   const [clickedSuggestions, setClickedSuggestions] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -286,6 +292,10 @@ function CitySearch() {
     fetchCitiesApi().then(data => setSuggestions(data));
   }, []);
 
+  useEffect(() => {
+    console.log(newCity)
+   }, [newCity]);
+
   const handleChange = (event) => {
     const inputValue = event.target.value;
     setInputValue(inputValue);
@@ -298,9 +308,9 @@ function CitySearch() {
   };
 
   const handleSelect = (value) => {
-    // setClickedSuggestions();
+    setNewCity(value);
+    console.log(value);
     setInputValue(value);
-    // console.log(clickedSuggestions);
     setFilteredSuggestions([]);
     setIsWriting(false);
   };
@@ -343,7 +353,7 @@ function CitySearch() {
   );
 };
 
-function ModalAddCity({ onClose, open }) {
+function ModalAddCity({ onClose, open, newCity, setNewCity }) {
   return (
     <ModalSm onClose={onClose} open={open}>
       <h4 className="pb-4">Adicionar cidade</h4>
@@ -354,8 +364,11 @@ function ModalAddCity({ onClose, open }) {
         </InputIcon>
         <p>Paraná</p>
       </InputRoot>
-      <CitySearch />
-      <Button className="bg-red-tx mt-5 w-31 sm:h-12 place-self-end">
+      <CitySearch setNewCity={setNewCity} newCity={newCity}/>
+      <Button className="bg-red-tx mt-5 w-31 sm:h-12 place-self-end" onClick={() => {
+        console.log(newCity);
+        addInfo(newCity)}
+        }>
         <ButtonText className="text-white">
           Adicionar
         </ButtonText>
