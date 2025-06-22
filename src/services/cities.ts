@@ -34,10 +34,9 @@ const data = [
 
 export interface CidadesAtendidasResponse {
   id: number;
-  status: string;
-  data: string;
   cidade: string;
   estado: string;
+  status: string;
 }
 
 export function setInfo(info?: any): void {
@@ -67,3 +66,20 @@ export function updateStatus(id: number): CidadesAtendidasResponse[] | null {
     setInfo(updated);
     return updated;
 }
+
+export function addInfo(cidade: string): void {
+    const stored = getInfo();
+    console.log(stored);
+    const newInfo = {
+        id: stored ? stored.length + 1 : 1,
+        cidade: cidade.toLowerCase(),
+        estado: "PR",
+        status: "ativo",
+    }
+    console.log(newInfo);
+    stored?.push(newInfo);
+    const updated = stored ? stored : newInfo;
+    console.log(updated);
+    setInfo(updated);
+}
+
