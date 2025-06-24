@@ -8,19 +8,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
-
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -29,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Root, Switch, Thumb } from "@radix-ui/react-switch";
 
 import { Button as ButtonShad } from "@/components/ui/button"
 import { useState } from "react";
@@ -41,8 +29,6 @@ import { setInfo, getInfo, updateInfo, updateStatus, addInfo } from "@/services/
 
 
 export function ManageRoutes() {
-  const [showModal, setShowModal] = useState(false);
-  const [newCity, setNewCity] = useState('');
 
   getInfo() ?? setInfo();
   // setInfo();
@@ -51,13 +37,7 @@ export function ManageRoutes() {
     <>
       <SectionApp>
         <AppHeader screenTitle="Gerenciar rotas" />
-        <RoutesDataTable newCity={newCity}/>
-        <Button onClick={() => setShowModal(true)}>
-          <ButtonText>
-            Adicionar cidade
-          </ButtonText>
-        </Button>
-        <ModalAddCity open={showModal} onClose={() => setShowModal(false)} newCity={newCity} setNewCity={setNewCity} />
+        <RoutesDataTable />
       </SectionApp>
     </>
   );
@@ -67,13 +47,12 @@ const getColumns = ({ onCancelClick, onStatusClick }) => [
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) =>
-    {
+    cell: ({ row }) => {
       return (
-        <Button className="bg-transparent h-8 w-8 p-0 hover:cursor-pointer"
-        onClick={() => onStatusClick(row.original)}>
+        <ButtonShad variant="secondary" className="hover:cursor-pointer"
+          onClick={() => onStatusClick(row.original)}>
           <div className="capitalize">{row.getValue("status")}</div>
-        </Button>
+        </ButtonShad>
       );
     },
   },
@@ -104,28 +83,22 @@ const getColumns = ({ onCancelClick, onStatusClick }) => [
     header: "Cancelar",
     cell: ({ row }) => {
       return (
-        <Button variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'inativo' ? ' hover:cursor-pointer' : 'cursor-default'}`} onClick={() => {
-          if (row.getValue("status") == "inativo")
-            onCancelClick(row.original)
-        }}>
+        <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'inativo' ? ' hover:cursor-pointer' : 'cursor-default'}`} onClick={() => { onCancelClick(row.original) }}>
           <X />
-        </Button>
+        </ButtonShad>
       );
     },
   },
 ];
 
-function RoutesDataTable({ newCity }) {
+function RoutesDataTable() {
   const [sorting, setSorting] = React.useState([]);
   const [columnFilters, setColumnFilters] = React.useState([]);
   const [columnVisibility, setColumnVisibility] = React.useState({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [tableData, setTableData] = React.useState(getInfo());
   const [selectedRow, setSelectedRow] = React.useState(null);
-
-  React.useEffect(() => {
-    setTableData(getInfo())
-    }, [getInfo()])
+  const [showModal, setShowModal] = useState(false);
 
   const columns = getColumns({
     onCancelClick: setSelectedRow,
@@ -139,7 +112,7 @@ function RoutesDataTable({ newCity }) {
     setSelectedRow(null);
   };
 
-  function handleStatus(row){
+  function handleStatus(row) {
     setTableData(updateStatus(row.id));
   };
 
@@ -162,39 +135,7 @@ function RoutesDataTable({ newCity }) {
   });
 
   return (
-    <div className="w-full">
-      {/* <div className="flex items-center py-4">
-        <Input
-          placeholder="Filter emails..."
-          value={table.getColumn("email")?.getFilterValue() ?? ""}
-          onChange={event =>
-            table.getColumn("email")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
-        />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <ButtonShad variant="outline" className="ml-auto">
-              Columns <ChevronDown />
-            </ButtonShad>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter(column => column.getCanHide())
-              .map(column => (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  className="capitalize"
-                  checked={column.getIsVisible()}
-                  onCheckedChange={value => column.toggleVisibility(!!value)}
-                >
-                  {column.id}
-                </DropdownMenuCheckboxItem>
-              ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div> */}
+    <div className="w-full pt-5">
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -241,11 +182,7 @@ function RoutesDataTable({ newCity }) {
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        {/* <div className="text-muted-foreground flex-1 text-sm">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div> */}
+      <div className="flex flex-row-reverse items-center justify-between space-x-2 py-4">
         <div className="space-x-2">
           <ButtonShad
             variant="outline"
@@ -264,20 +201,30 @@ function RoutesDataTable({ newCity }) {
             Next
           </ButtonShad>
         </div>
-        <ModalConfirm
-          message="Você realmente deseja cancelar esta solicitação?"
-          open={!!selectedRow}
-          actionWord="Cancelar"
-          action={() => handleCancel()}
-          onClose={() => setSelectedRow(null)}
-        />
+        <Button className="w-50" onClick={() => setShowModal(true)}>
+          <ButtonText className="text-center">
+            Adicionar cidade
+          </ButtonText>
+        </Button>
 
       </div>
+      <ModalConfirm
+        message="Você realmente deseja cancelar esta solicitação?"
+        open={!!selectedRow}
+        actionWord="Cancelar"
+        action={() => handleCancel()}
+        onClose={() => setSelectedRow(null)}
+      />
+      <ModalAddCity
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        setTableData={setTableData}
+      />
     </div>
   );
 }
 
-function CitySearch({ setNewCity, newCity }) {
+function CitySearch({ setNewCity }) {
   const [filteredSuggestions, setFilteredSuggestions] = useState([]);
   const [clickedSuggestions, setClickedSuggestions] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -292,9 +239,9 @@ function CitySearch({ setNewCity, newCity }) {
     fetchCitiesApi().then(data => setSuggestions(data));
   }, []);
 
-  useEffect(() => {
-    console.log(newCity)
-   }, [newCity]);
+  // useEffect(() => {
+  //   console.log(newCity)
+  //  }, [newCity]);
 
   const handleChange = (event) => {
     const inputValue = event.target.value;
@@ -322,17 +269,18 @@ function CitySearch({ setNewCity, newCity }) {
         <InputIcon>
           <MapPin className="icon" />
         </InputIcon>
-        <InputField value={inputValue} onChange={handleChange} placeholder="Ex: Paranavaí" 
-        onFocus={() => { 
-          if (normalize(inputValue.toString()) === normalize(filteredSuggestions.toString()))
-           setIsWriting(false); 
-          else setIsWriting(true) }}
-           onBlur={() => { 
-            if (normalize(inputValue.toString()) === 
-            normalize(filteredSuggestions[0])) 
-            { setInputValue(filteredSuggestions[0]); }
-             else { setIsWriting(true); } 
-             setIsWriting(false) }} />
+        <InputField value={inputValue} onChange={handleChange} placeholder="Ex: Paranavaí"
+          onFocus={() => {
+            if (normalize(inputValue.toString()) === normalize(filteredSuggestions.toString()))
+              setIsWriting(false);
+            else setIsWriting(true)
+          }}
+          onBlur={() => {
+            if (normalize(inputValue.toString()) ===
+              normalize(filteredSuggestions[0])) { setInputValue(filteredSuggestions[0]); }
+            else { setIsWriting(true); }
+            setIsWriting(false)
+          }} />
       </InputRoot>
 
       {isWriting && <ul className="bg-gray-50 rounded-2xl absolute top-full z-50 w-full">
@@ -353,7 +301,9 @@ function CitySearch({ setNewCity, newCity }) {
   );
 };
 
-function ModalAddCity({ onClose, open, newCity, setNewCity }) {
+function ModalAddCity({ onClose, open, setTableData }) {
+  const [newCity, setNewCity] = useState('');
+
   return (
     <ModalSm onClose={onClose} open={open}>
       <h4 className="pb-4">Adicionar cidade</h4>
@@ -364,15 +314,32 @@ function ModalAddCity({ onClose, open, newCity, setNewCity }) {
         </InputIcon>
         <p>Paraná</p>
       </InputRoot>
-      <CitySearch setNewCity={setNewCity} newCity={newCity}/>
-      <Button className="bg-red-tx mt-5 w-31 sm:h-12 place-self-end" onClick={() => {
-        console.log(newCity);
-        addInfo(newCity)}
-        }>
-        <ButtonText className="text-white">
-          Adicionar
-        </ButtonText>
-      </Button>
+      <CitySearch setNewCity={setNewCity} />
+      <Switch
+        className="w-10 h-6 bg-gray-300 rounded-full relative"
+        style={{ backgroundColor: "rgb(209, 213, 219)" }} // Cor cinza clara
+      >
+        <Thumb
+          className="w-4 h-4 bg-white rounded-full absolute top-1 left-1 transition-transform transform data-[state=checked]:translate-x-4"
+          style={{ backgroundColor: "white" }} // Cor branca
+        />
+      </Switch>
+      <div className="flex justify-between">
+        <Button className="bg-gray-100 mt-5 w-31 sm:h-12" onClick={() => { onClose() }}>
+          <ButtonText className="text-black text-center">
+            Cancelar
+          </ButtonText>
+        </Button>
+        <Button className="bg-red-tx mt-5 w-31 sm:h-12" onClick={() => {
+          console.log(newCity);
+          addInfo(newCity)
+          setTableData(getInfo())
+        }}>
+          <ButtonText className="text-white text-center">
+            Adicionar
+          </ButtonText>
+        </Button>
+      </div>
     </ModalSm>
   )
 }
