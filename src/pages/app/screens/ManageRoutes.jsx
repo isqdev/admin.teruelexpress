@@ -22,15 +22,22 @@ import { Button as ButtonShad } from "@/components/ui/button"
 import { useState } from "react";
 import { useEffect } from "react";
 import { MapPin, X } from "phosphor-react";
-import { normalize } from "../../../lib/utils";
+import { normalize } from "../../../utils/normalize";
 
 import { fetchCities } from "@/services/ibge";
 import { setInfo, getInfo, updateInfo, updateStatus, addInfo } from "@/services/cities";
 
 
 export function ManageRoutes() {
+  // const [suggestions, setSuggestions] = useState([]);
+
+  // useEffect(() => {
+  //   fetch("https://raw.githubusercontent.com/CS-PI-2025-Delinquentes/json-end/refs/heads/main/parana-cities.json")
+  //   .then(data => data.json()).then(data => setSuggestions(data))
+  // }, []);
 
   getInfo() ?? setInfo();
+
   // setInfo();
 
   return (
@@ -219,12 +226,14 @@ function RoutesDataTable() {
         open={showModal}
         onClose={() => setShowModal(false)}
         setTableData={setTableData}
+      // suggestions={suggestions} 
       />
     </div>
   );
 }
 
 function CitySearch({ setNewCity }) {
+  const [isCityThere, setIsCityThere] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState([]);
   const [clickedSuggestions, setClickedSuggestions] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -232,16 +241,19 @@ function CitySearch({ setNewCity }) {
   const [suggestions, setSuggestions] = useState([]);
 
   useEffect(() => {
-    const fetchCitiesApi = async () => {
-      const data = await fetchCities();
-      return data;
-    };
-    fetchCitiesApi().then(data => setSuggestions(data));
+    fetch("https://raw.githubusercontent.com/CS-PI-2025-Delinquentes/json-end/refs/heads/main/parana-cities.json")
+      .then(data => data.json()).then(data => setSuggestions(data))
   }, []);
 
+  const usedCities = getInfo().map(city => city.cidade);
+
   // useEffect(() => {
-  //   console.log(newCity)
-  //  }, [newCity]);
+  //   const fetchCitiesApi = async () => {
+  //     const data = await fetchCities();
+  //     return data;
+  //   };
+  //   fetchCitiesApi().then(data => setSuggestions(data));
+  // }, []);
 
   const handleChange = (event) => {
     const inputValue = event.target.value;
@@ -255,53 +267,55 @@ function CitySearch({ setNewCity }) {
   };
 
   const handleSelect = (value) => {
-    setNewCity(value);
-    console.log(value);
-    setInputValue(value);
-    setFilteredSuggestions([]);
-    setIsWriting(false);
+    if (!usedCities.includes(value) && !clickedSuggestions.includes(value)) {
+      setNewCity(value);
+      setClickedSuggestions(prev => [...prev, value]);
+      setFilteredSuggestions([]);
+      setIsWriting(false);
+    } else setIsCityThere(true);
+    setInputValue("");
   };
 
   return (
     <div className="relative mt-3">
       <InputLabel>Cidade</InputLabel>
-      <InputRoot>
+      <InputRoot data-status={isCityThere ? "error" : "default"}>
         <InputIcon>
-          <MapPin className="icon" />
+          <MapPin className={`icon ${isCityThere ? "text-danger-base" : ""}`} />
         </InputIcon>
         <InputField value={inputValue} onChange={handleChange} placeholder="Ex: Paranavaí"
           onFocus={() => {
-            if (normalize(inputValue.toString()) === normalize(filteredSuggestions.toString()))
-              setIsWriting(false);
-            else setIsWriting(true)
+            setIsCityThere(false)
+            setIsWriting(true)
           }}
-          onBlur={() => {
-            if (normalize(inputValue.toString()) ===
-              normalize(filteredSuggestions[0])) { setInputValue(filteredSuggestions[0]); }
-            else { setIsWriting(true); }
-            setIsWriting(false)
-          }} />
+          onBlur={() => {setIsWriting(false)}}/>
       </InputRoot>
+      {isCityThere && <InputMessage className="text-danger-base pt-1">
+        Cidade já adicionada!
+      </InputMessage>}
 
-      {isWriting && <ul className="bg-gray-50 rounded-2xl absolute top-full z-50 w-full">
+      {isWriting && <ul className="bg-gray-50 rounded-2xl absolute top-20 z-50 w-full">
         {filteredSuggestions.map((suggestion, index) => (
-          <li key={index} onMouseDown={() => handleSelect(suggestion)} onBlur={() => setIsWriting(false)}>
-            <p className="hover:bg-gray-100 hover:cursor-pointer rounded-2xl overflow-hidden pl-5 py-2 lowercase"> {suggestion}</p>
+          <li key={index} onMouseDown={() => handleSelect(suggestion)}>
+            <p className="hover:bg-gray-100 hover:cursor-pointer rounded-2xl overflow-hidden pl-5 py-2"> {suggestion}</p>
           </li>
         ))}
       </ul>}
-      {/* {<ul className="bg-gray-50 rounded-2xl absolute top-full z-50 w-full">
-        {clickedSuggestions.map((clickedSuggestions, index) => (
-          <li key={index} onMouseDown={() => handleSelect(clickedSuggestions)} onBlur={() => setIsWriting(false)}>
-            <p className="hover:bg-gray-100 hover:cursor-pointer rounded-2xl overflow-hidden pl-5 py-2 lowercase"> {clickedSuggestions}</p>
-          </li>
-        ))}
-      </ul>} */}
+      {<div className="pt-2">
+        <span className="font-bold text-xs sm:text-base text-black">Cidades a serem adicionadas</span>
+        <ul className=" flex flex-wrap gap-x-1 gap-y-2 mt-1">
+          {clickedSuggestions.map((clickedSuggestion, index) => (
+            <li className="bg-gray-50 rounded-2xl w-fit h-6 items-center flex hover:cursor-pointer" key={index} onClick={() => setClickedSuggestions(prev => prev.filter(choice => choice !== clickedSuggestion))}>
+              <span className="rounded-2xl text-xs text-center px-3 text-black"> {clickedSuggestion}</span>
+            </li>
+          ))}
+        </ul>
+      </div>}
     </div>
   );
 };
 
-function ModalAddCity({ onClose, open, setTableData }) {
+function ModalAddCity({ onClose, open, setTableData, suggestions }) {
   const [newCity, setNewCity] = useState('');
 
   return (
@@ -314,26 +328,19 @@ function ModalAddCity({ onClose, open, setTableData }) {
         </InputIcon>
         <p>Paraná</p>
       </InputRoot>
-      <CitySearch setNewCity={setNewCity} />
-      <Switch
-        className="w-10 h-6 bg-gray-300 rounded-full relative"
-        style={{ backgroundColor: "rgb(209, 213, 219)" }} // Cor cinza clara
-      >
-        <Thumb
-          className="w-4 h-4 bg-white rounded-full absolute top-1 left-1 transition-transform transform data-[state=checked]:translate-x-4"
-          style={{ backgroundColor: "white" }} // Cor branca
-        />
-      </Switch>
-      <div className="flex justify-between">
-        <Button className="bg-gray-100 mt-5 w-31 sm:h-12" onClick={() => { onClose() }}>
+      <CitySearch setNewCity={setNewCity} suggestions={suggestions} />
+      <div className="flex justify-between gap-6">
+        <Button className="bg-gray-100 mt-4" onClick={() => { onClose() }}>
           <ButtonText className="text-black text-center">
             Cancelar
           </ButtonText>
         </Button>
-        <Button className="bg-red-tx mt-5 w-31 sm:h-12" onClick={() => {
-          console.log(newCity);
-          addInfo(newCity)
-          setTableData(getInfo())
+        <Button className="bg-red-tx mt-4" onClick={() => {
+          if (newCity != "") {
+            addInfo(newCity)
+            setTableData(getInfo())
+            onClose()
+          }
         }}>
           <ButtonText className="text-white text-center">
             Adicionar
