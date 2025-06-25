@@ -4,8 +4,9 @@ import { byRadius } from "@cloudinary/url-gen/actions/roundCorners";
 
 const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 
+const cld = new Cloudinary({ cloud: { cloudName } });
+
 export function CloudinaryImage({ publicId, border = 0, ...props }) {
-  const cld = new Cloudinary({ cloud: { cloudName } });
 
   let img = cld
     .image(publicId)

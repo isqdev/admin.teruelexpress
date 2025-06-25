@@ -10,13 +10,13 @@ import { fetchCep } from "@/services/cep";
 
 export function Budget() {
     const [data, setData] = useState("Dados do Formulario em JSON");
-    const [showAllertModal, setShowAllertModal] = useState(false);
+    const [showAlertModal, setShowAlertModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [cities, setCities] = useState([]);
     const [normalizedCities, setNormalizedCities] = useState([]);
 
     useEffect(() => {
-        fetch('https://raw.githubusercontent.com/CS-PI-2025-Delinquentes/json-end/refs/heads/main/cities.json')
+        fetch('https://raw.githubusercontent.com/CS-PI-2025-Delinquentes/json-end/main/cities.json')
             .then(res => res.json())
             .then(citiesData => {
                 setCities(citiesData);
@@ -47,7 +47,7 @@ export function Budget() {
     const onSimulateClick = (e) => {
         e.preventDefault();
         if (!isValid) {
-            setShowAllertModal(true);
+            setShowAlertModal(true);
             return;
         }
         handleSubmit(postForm)();
@@ -129,12 +129,12 @@ export function Budget() {
                 </form>
             </SectionApp>
 
-            {showAllertModal && (
+            {showAlertModal && (
                 <>
                     <div className="fixed inset-0 flex items-center justify-center z-3">
                         <Shape className="z-2 border border-gray-600 bg-white flex flex-col items-center max-w-sm">
                             <p className="mb-4 text-lg font-semibold">Por favor preencher todos os campos!</p>
-                            <Button className="bg-red-tx" onClick={() => setShowAllertModal(false)}>
+                            <Button className="bg-red-tx" onClick={() => setShowAlertModal(false)}>
                                 <ButtonText className="text-white text-center">Fechar</ButtonText>
                             </Button>
                         </Shape>
