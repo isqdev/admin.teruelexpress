@@ -16,7 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Root, Switch, Thumb } from "@radix-ui/react-switch";
 
 import { Button as ButtonShad } from "@/components/ui/button"
 import { useState } from "react";
@@ -24,21 +23,11 @@ import { useEffect } from "react";
 import { MapPin, X } from "phosphor-react";
 import { normalize } from "../../../utils/normalize";
 
-import { fetchCities } from "@/services/ibge";
 import { setInfo, getInfo, updateInfo, updateStatus, addInfo } from "@/services/cities";
 
-
 export function ManageRoutes() {
-  // const [suggestions, setSuggestions] = useState([]);
-
-  // useEffect(() => {
-  //   fetch("https://raw.githubusercontent.com/CS-PI-2025-Delinquentes/json-end/refs/heads/main/parana-cities.json")
-  //   .then(data => data.json()).then(data => setSuggestions(data))
-  // }, []);
 
   getInfo() ?? setInfo();
-
-  // setInfo();
 
   return (
     <>
@@ -226,7 +215,6 @@ function RoutesDataTable() {
         open={showModal}
         onClose={() => setShowModal(false)}
         setTableData={setTableData}
-      // suggestions={suggestions} 
       />
     </div>
   );
@@ -246,14 +234,6 @@ function CitySearch({ setNewCity }) {
   }, []);
 
   const usedCities = getInfo().map(city => city.cidade);
-
-  // useEffect(() => {
-  //   const fetchCitiesApi = async () => {
-  //     const data = await fetchCities();
-  //     return data;
-  //   };
-  //   fetchCitiesApi().then(data => setSuggestions(data));
-  // }, []);
 
   const handleChange = (event) => {
     const inputValue = event.target.value;
