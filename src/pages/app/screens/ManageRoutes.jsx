@@ -20,8 +20,10 @@ import {
 import { Button as ButtonShad } from "@/components/ui/button"
 import { useState } from "react";
 import { useEffect } from "react";
-import { MapPin, X } from "phosphor-react";
+import { ArrowLeft, ArrowRight, MapPin, X } from "phosphor-react";
 import { normalize } from "../../../utils/normalize";
+import { useIsMobile } from "@/hooks/use-mobile" 
+
 
 import { setInfo, getInfo, updateInfo, updateStatus, addInfo } from "@/services/cities";
 
@@ -95,6 +97,14 @@ function RoutesDataTable() {
   const [tableData, setTableData] = React.useState(getInfo());
   const [selectedRow, setSelectedRow] = React.useState(null);
   const [showModal, setShowModal] = useState(false);
+  const isMobile = useIsMobile();
+
+ React.useEffect(() => {
+      setColumnVisibility({
+        id: !isMobile,
+        estado: !isMobile,
+      })
+    }, [isMobile])
 
   const columns = getColumns({
     onCancelClick: setSelectedRow,
@@ -123,11 +133,22 @@ function RoutesDataTable() {
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     state: {
-      sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
     },
+    initialState: {
+      sorting: [
+        {
+          id: 'cidade',
+          desc: false,
+        },
+      ],
+      pagination: {
+        pageSize: 20.
+      }
+    },
+
   });
 
   return (
@@ -186,7 +207,7 @@ function RoutesDataTable() {
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            Previous
+            <ArrowLeft className="icon"/>
           </ButtonShad>
           <ButtonShad
             variant="outline"
@@ -194,11 +215,11 @@ function RoutesDataTable() {
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Next
+            <ArrowRight className="icon"/>
           </ButtonShad>
         </div>
-        <Button className="w-50" onClick={() => setShowModal(true)}>
-          <ButtonText className="text-center">
+        <Button className="w-50 bg-red-tx" onClick={() => setShowModal(true)}>
+          <ButtonText className="text-center text-white">
             Adicionar cidade
           </ButtonText>
         </Button>
@@ -220,10 +241,9 @@ function RoutesDataTable() {
   );
 }
 
-function CitySearch({ setNewCity }) {
+function CitySearch({clickedSuggestions, setClickedSuggestions}) {
   const [isCityThere, setIsCityThere] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState([]);
-  const [clickedSuggestions, setClickedSuggestions] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isWriting, setIsWriting] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
@@ -248,7 +268,6 @@ function CitySearch({ setNewCity }) {
 
   const handleSelect = (value) => {
     if (!usedCities.includes(value) && !clickedSuggestions.includes(value)) {
-      setNewCity(value);
       setClickedSuggestions(prev => [...prev, value]);
       setFilteredSuggestions([]);
       setIsWriting(false);
@@ -285,7 +304,7 @@ function CitySearch({ setNewCity }) {
         <span className="font-bold text-xs sm:text-base text-black">Cidades a serem adicionadas</span>
         <ul className=" flex flex-wrap gap-x-1 gap-y-2 mt-1">
           {clickedSuggestions.map((clickedSuggestion, index) => (
-            <li className="bg-gray-50 rounded-2xl w-fit h-6 items-center flex hover:cursor-pointer" key={index} onClick={() => setClickedSuggestions(prev => prev.filter(choice => choice !== clickedSuggestion))}>
+            <li className="bg-gray-50 rounded-2xl w-fit h-6 items-center flex hover:cursor-pointer" key={index} onClick={() => setClickedSuggestions(prev => prev.filter(choice => choice != clickedSuggestion))}>
               <span className="rounded-2xl text-xs text-center px-3 text-black"> {clickedSuggestion}</span>
             </li>
           ))}
@@ -296,10 +315,10 @@ function CitySearch({ setNewCity }) {
 };
 
 function ModalAddCity({ onClose, open, setTableData, suggestions }) {
-  const [newCity, setNewCity] = useState('');
+  const [clickedSuggestions, setClickedSuggestions] = useState([]);
 
   return (
-    <ModalSm onClose={onClose} open={open}>
+    <ModalSm onClose={() => {onClose(); setClickedSuggestions([])}} open={open}>
       <h4 className="pb-4">Adicionar cidade</h4>
       <InputLabel>Estado</InputLabel>
       <InputRoot className="bg-gray-50">
@@ -308,17 +327,18 @@ function ModalAddCity({ onClose, open, setTableData, suggestions }) {
         </InputIcon>
         <p>Paraná</p>
       </InputRoot>
-      <CitySearch setNewCity={setNewCity} suggestions={suggestions} />
+      <CitySearch clickedSuggestions={clickedSuggestions} setClickedSuggestions={setClickedSuggestions} suggestions={suggestions} />
       <div className="flex justify-between gap-6">
-        <Button className="bg-gray-100 mt-4" onClick={() => { onClose() }}>
+        <Button className="bg-gray-100 mt-4" onClick={() => { onClose(); setClickedSuggestions([]) }}>
           <ButtonText className="text-black text-center">
             Cancelar
           </ButtonText>
         </Button>
         <Button className="bg-red-tx mt-4" onClick={() => {
-          if (newCity != "") {
-            addInfo(newCity)
+          if (clickedSuggestions.length != 0) {
+            clickedSuggestions.forEach(sug => addInfo(sug))
             setTableData(getInfo())
+            setClickedSuggestions([])
             onClose()
           }
         }}>
