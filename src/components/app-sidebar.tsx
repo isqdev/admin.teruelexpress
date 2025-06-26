@@ -32,7 +32,7 @@ const items = [
     icon: Truck,
   },
   {
-    title: "Avaliacoes",
+    title: "Avaliações",
     url: "/app/avaliacoes",
     icon: Star,
   },
