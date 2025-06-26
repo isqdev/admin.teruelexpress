@@ -228,7 +228,7 @@ function RoutesDataTable() {
       <ModalConfirm
         message="Você realmente deseja cancelar esta solicitação?"
         open={!!selectedRow}
-        actionWord="Cancelar"
+        actionWord="Sim"
         action={() => handleCancel()}
         onClose={() => setSelectedRow(null)}
       />
@@ -293,7 +293,7 @@ function CitySearch({clickedSuggestions, setClickedSuggestions}) {
         Cidade já adicionada!
       </InputMessage>}
 
-      {isWriting && <ul className="bg-gray-50 rounded-2xl absolute top-20 z-50 w-full">
+      {isWriting && <ul className="bg-gray-50 rounded-2xl absolute top-20 z-50 w-full max-h-55 overflow-y-auto">
         {filteredSuggestions.map((suggestion, index) => (
           <li key={index} onMouseDown={() => handleSelect(suggestion)}>
             <p className="hover:bg-gray-100 hover:cursor-pointer rounded-2xl overflow-hidden pl-5 py-2"> {suggestion}</p>
@@ -304,8 +304,14 @@ function CitySearch({clickedSuggestions, setClickedSuggestions}) {
         <span className="font-bold text-xs sm:text-base text-black">Cidades a serem adicionadas</span>
         <ul className=" flex flex-wrap gap-x-1 gap-y-2 mt-1">
           {clickedSuggestions.map((clickedSuggestion, index) => (
-            <li className="bg-gray-50 rounded-2xl w-fit h-6 items-center flex hover:cursor-pointer" key={index} onClick={() => setClickedSuggestions(prev => prev.filter(choice => choice != clickedSuggestion))}>
-              <span className="rounded-2xl text-xs text-center px-3 text-black"> {clickedSuggestion}</span>
+            <li className="bg-gray-50 hover:bg-danger-base hover:border rounded-2xl w-fit h-6 items-center flex hover:cursor-pointer" key={index} onClick={() => setClickedSuggestions(prev => prev.filter(choice => choice != clickedSuggestion))}>
+              <div className="group relative">
+              <span className="rounded-2xl text-xs text-center px-3 text-black group-hover:opacity-0"> {clickedSuggestion}
+              </span>
+              <span className="absolute top-1 left-1/2 -translate-x-1/2 rounded-2xl text-xs text-center px-3 text-white font-bold hidden group-hover:inline"> 
+                Remover
+              </span>
+              </div>
             </li>
           ))}
         </ul>
@@ -327,7 +333,7 @@ function ModalAddCity({ onClose, open, setTableData, suggestions }) {
         </InputIcon>
         <p>Paraná</p>
       </InputRoot>
-      <CitySearch clickedSuggestions={clickedSuggestions} setClickedSuggestions={setClickedSuggestions} suggestions={suggestions} />
+      <CitySearch clickedSuggestions={clickedSuggestions} setClickedSuggestions={setClickedSuggestions} suggestions={suggestions} tabindex="-1" />
       <div className="flex justify-between gap-6">
         <Button className="bg-gray-100 mt-4" onClick={() => { onClose(); setClickedSuggestions([]) }}>
           <ButtonText className="text-black text-center">
