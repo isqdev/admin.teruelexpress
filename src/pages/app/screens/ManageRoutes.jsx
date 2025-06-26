@@ -26,6 +26,7 @@ import { useIsMobile } from "@/hooks/use-mobile"
 
 
 import { setInfo, getInfo, updateInfo, updateStatus, addInfo } from "@/services/cities";
+import { toast, Toaster } from "sonner";
 
 export function ManageRoutes() {
 
@@ -36,6 +37,7 @@ export function ManageRoutes() {
       <SectionApp>
         <AppHeader screenTitle="Gerenciar rotas" />
         <RoutesDataTable />
+        <Toaster position="top-right" richColors/>
       </SectionApp>
     </>
   );
@@ -47,7 +49,7 @@ const getColumns = ({ onCancelClick, onStatusClick }) => [
     header: "Status",
     cell: ({ row }) => {
       return (
-        <ButtonShad variant="secondary" className="hover:cursor-pointer"
+        <ButtonShad variant="secondary" className={`hover:cursor-pointer w-18 text-black ${row.getValue('status') == 'inativo' ? '' : 'bg-blue-500 text-white hover:bg-blue-500/90 '}`}
           onClick={() => onStatusClick(row.original)}>
           <div className="capitalize">{row.getValue("status")}</div>
         </ButtonShad>
@@ -78,10 +80,10 @@ const getColumns = ({ onCancelClick, onStatusClick }) => [
   {
     id: "actions",
     enableHiding: false,
-    header: "Cancelar",
+    header: "Remover",
     cell: ({ row }) => {
       return (
-        <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'inativo' ? ' hover:cursor-pointer' : 'cursor-default'}`} onClick={() => { onCancelClick(row.original) }}>
+        <ButtonShad variant="secondary" className={`h-8 w-8 p-0 cursor-pointer ${row.getValue('status') == 'inativo' ? '' : ''}`} onClick={() => { onCancelClick(row.original) }}>
           <X />
         </ButtonShad>
       );
@@ -113,7 +115,7 @@ function RoutesDataTable() {
 
   const handleCancel = () => {
     if (!selectedRow) return;
-
+    toast.info(`${selectedRow.cidade} foi removida`);
     setTableData(updateInfo(selectedRow.id));
     setSelectedRow(null);
   };
@@ -145,7 +147,7 @@ function RoutesDataTable() {
         },
       ],
       pagination: {
-        pageSize: 20.
+        pageSize: 20
       }
     },
 
@@ -226,7 +228,7 @@ function RoutesDataTable() {
 
       </div>
       <ModalConfirm
-        message="Você realmente deseja cancelar esta solicitação?"
+        message="Você realmente deseja remover esta cidade?"
         open={!!selectedRow}
         actionWord="Sim"
         action={() => handleCancel()}
@@ -303,7 +305,7 @@ function CitySearch({clickedSuggestions, setClickedSuggestions}) {
       {<div className="pt-2">
         <span className="font-bold text-xs sm:text-base text-black">Cidades a serem adicionadas</span>
         <ul className=" flex flex-wrap gap-x-1 gap-y-2 mt-1">
-          {clickedSuggestions.map((clickedSuggestion, index) => (
+          {clickedSuggestions.length !== 0 ? clickedSuggestions.map((clickedSuggestion, index) => (
             <li className="bg-gray-50 hover:bg-danger-base hover:border rounded-2xl w-fit h-6 items-center flex hover:cursor-pointer" key={index} onClick={() => setClickedSuggestions(prev => prev.filter(choice => choice != clickedSuggestion))}>
               <div className="group relative">
               <span className="rounded-2xl text-xs text-center px-3 text-black group-hover:opacity-0"> {clickedSuggestion}
@@ -313,7 +315,7 @@ function CitySearch({clickedSuggestions, setClickedSuggestions}) {
               </span>
               </div>
             </li>
-          ))}
+          )) : <span className="text-gray-600 text-xs sm:text-base">Nenhuma cidade foi selecionada</span>}
         </ul>
       </div>}
     </div>
@@ -335,7 +337,7 @@ function ModalAddCity({ onClose, open, setTableData, suggestions }) {
       </InputRoot>
       <CitySearch clickedSuggestions={clickedSuggestions} setClickedSuggestions={setClickedSuggestions} suggestions={suggestions} tabindex="-1" />
       <div className="flex justify-between gap-6">
-        <Button className="bg-gray-100 mt-4" onClick={() => { onClose(); setClickedSuggestions([]) }}>
+        <Button className="bg-gray-50 mt-4" onClick={() => { onClose(); setClickedSuggestions([]) }}>
           <ButtonText className="text-black text-center">
             Cancelar
           </ButtonText>
@@ -345,6 +347,7 @@ function ModalAddCity({ onClose, open, setTableData, suggestions }) {
             clickedSuggestions.forEach(sug => addInfo(sug))
             setTableData(getInfo())
             setClickedSuggestions([])
+            toast.success("Adicionado: " + clickedSuggestions.join(", "))
             onClose()
           }
         }}>

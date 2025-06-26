@@ -117,7 +117,7 @@ export function ModalConfirm({
             <p className="flex-1">{message}</p>
           </div>
           <div className="flex justify-end gap-4">
-            <Button className="bg-white-tx text-black border-gray-600 border-1 h-10 sm:h-12" onClick={onClose}>
+            <Button className="bg-gray-50 text-black h-10 sm:h-12" onClick={onClose}>
               <ButtonText className="text-center">Não</ButtonText>
             </Button>
             <Button className="bg-red-50 text-danger-base h-10 sm:h-12" onClick={handleAction}>
