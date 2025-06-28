@@ -3,7 +3,7 @@ name: Deploy Frontend-Admin
 on:
   push:
     branches:
-      - dev
+      - hts-deploy-migration
 
 jobs:
   build-and-push:
