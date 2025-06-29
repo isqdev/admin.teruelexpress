@@ -153,6 +153,7 @@ const getColumns = ({ onCancelClick, onAcceptClick }) => [
   {
     accessorKey: "status",
     header: "Status",
+    filterFn: "arrIncludesSome",
     cell: ({ row }) => (
       <div className="capitalize">{row.getValue("status")}</div>
     ),
@@ -182,92 +183,6 @@ const getColumns = ({ onCancelClick, onAcceptClick }) => [
   },
 ];
 
-// const columns = [
-//   {
-//     id: "select",
-//     header: ({ table }) => (
-//       <Checkbox
-//         checked={
-//           table.getIsAllPageRowsSelected() ||
-//           (table.getIsSomePageRowsSelected() && "indeterminate")
-//         }
-//         onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
-//         aria-label="Select all"
-//       />
-//     ),
-//     cell: ({ row }) => (
-//       <Checkbox
-//         checked={row.getIsSelected()}
-//         onCheckedChange={value => row.toggleSelected(!!value)}
-//         aria-label="Select row"
-//       />
-//     ),
-//     enableSorting: false,
-//     enableHiding: false,
-//   },
-//   {
-//     accessorKey: "status",
-//     header: "Status",
-//     cell: ({ row }) => (
-//       <div className="capitalize">{row.getValue("status")}</div>
-//     ),
-//   },
-//   {
-//     accessorKey: "email",
-//     header: ({ column }) => (
-//       <ButtonShad
-//         variant="ghost"
-//         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-//       >
-//         Email
-//         <ArrowUpDown />
-//       </ButtonShad>
-//     ),
-//     cell: ({ row }) => <div className="lowercase">{row.getValue("email")}</div>,
-//   },
-//   {
-//     accessorKey: "amount",
-//     header: () => <div className="text-right">Amount</div>,
-//     cell: ({ row }) => {
-//       const amount = parseFloat(row.getValue("amount"));
-//       const formatted = new Intl.NumberFormat("en-US", {
-//         style: "currency",
-//         currency: "USD",
-//       }).format(amount);
-
-//       return <div className="text-right font-medium">{formatted}</div>;
-//     },
-//   },
-//   {
-//     id: "actions",
-//     enableHiding: false,
-//     cell: ({ row }) => {
-//       const payment = row.original;
-
-//       return (
-//         <DropdownMenu>
-//           <DropdownMenuTrigger asChild>
-//             <ButtonShad variant="ghost" className="h-8 w-8 p-0">
-//               <span className="sr-only">Open menu</span>
-//               <MoreHorizontal />
-//             </ButtonShad>
-//           </DropdownMenuTrigger>
-//           <DropdownMenuContent align="end">
-//             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-//             <DropdownMenuItem
-//               onClick={() => navigator.clipboard.writeText(payment.id)}
-//             >
-//               Copy payment ID
-//             </DropdownMenuItem>
-//             <DropdownMenuSeparator />
-//             <DropdownMenuItem>View customer</DropdownMenuItem>
-//             <DropdownMenuItem>View payment details</DropdownMenuItem>
-//           </DropdownMenuContent>
-//         </DropdownMenu>
-//       );
-//     },
-//   },
-// ];
 
 function DataTableDemo() {
   const [sorting, setSorting] = React.useState([]);
@@ -289,6 +204,17 @@ function DataTableDemo() {
   React.useEffect(() => {
     setTableData(JSON.parse(localStorage.getItem("solicitacoes-admin")));
   }, [])
+
+  function filterStatus(value) {
+    const statusTable = table.getColumn("status");
+    const filteredValue = statusTable.getFilterValue();
+    if (filteredValue != null) {
+      if (filteredValue.includes(value))
+        statusTable.setFilterValue(filteredValue.filter(stat => stat != value));
+      else
+        statusTable.setFilterValue(prev => [...prev, value]);
+    } else statusTable.setFilterValue([value]);
+  }
 
   const columns = getColumns({
     onCancelClick: setSelectedRow,
@@ -330,24 +256,26 @@ function DataTableDemo() {
             </ButtonShad>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="justify-center px-0">
-          <DropdownMenuCheckboxItem 
-            onCheckedChange={() => {table.getColumn("status").getFilterValue() == null ? table.getColumn("status").setFilterValue("Aceito") : table.getColumn("status").setFilterValue("")}}
-          >
+            <DropdownMenuCheckboxItem
+              onCheckedChange={() => {filterStatus("Aceito")}}
+            >
               Aceito
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
-              onCheckedChange={() => {table.getColumn("status").getFilterValue() == null ? table.getColumn("status").setFilterValue("Recusado") : table.getColumn("status").setFilterValue("")}}
+              onCheckedChange={() => {filterStatus("Recusado")}}
             >
               Recusado
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
-              onCheckedChange={() => {table.getColumn("status").getFilterValue() == null ? table.getColumn("status").setFilterValue("Pendente") : table.getColumn("status").setFilterValue("")}}
+              onCheckedChange={() => {filterStatus("Pendente")}}
             >
               Pendente
             </DropdownMenuCheckboxItem>
 
+ 
           </DropdownMenuContent>
         </DropdownMenu>
+
 
       </div>
       <div className="rounded-md border">
