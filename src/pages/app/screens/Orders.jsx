@@ -164,7 +164,7 @@ const getColumns = ({ onCancelClick, onAcceptClick, statusFeedback }) => [
     header: "Aceitar",
     cell: ({ row }) => {
       return (
-        <div>
+        <div className="flex gap-x-3 justify-center">
           <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'Pendente' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={() => {
             if (row.getValue("status") == "Pendente")
               // onAcceptClick(row.original)
@@ -185,6 +185,91 @@ const getColumns = ({ onCancelClick, onAcceptClick, statusFeedback }) => [
   },
 ];
 
+//   {
+//     id: "select",
+//     header: ({ table }) => (
+//       <Checkbox
+//         checked={
+//           table.getIsAllPageRowsSelected() ||
+//           (table.getIsSomePageRowsSelected() && "indeterminate")
+//         }
+//         onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
+//         aria-label="Select all"
+//       />
+//     ),
+//     cell: ({ row }) => (
+//       <Checkbox
+//         checked={row.getIsSelected()}
+//         onCheckedChange={value => row.toggleSelected(!!value)}
+//         aria-label="Select row"
+//       />
+//     ),
+//     enableSorting: false,
+//     enableHiding: false,
+//   },
+//   {
+//     accessorKey: "status",
+//     header: "Status",
+//     cell: ({ row }) => (
+//       <div className="capitalize">{row.getValue("status")}</div>
+//     ),
+//   },
+//   {
+//     accessorKey: "email",
+//     header: ({ column }) => (
+//       <ButtonShad
+//         variant="ghost"
+//         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+//       >
+//         Email
+//         <ArrowUpDown />
+//       </ButtonShad>
+//     ),
+//     cell: ({ row }) => <div className="lowercase">{row.getValue("email")}</div>,
+//   },
+//   {
+//     accessorKey: "amount",
+//     header: () => <div className="text-right">Amount</div>,
+//     cell: ({ row }) => {
+//       const amount = parseFloat(row.getValue("amount"));
+//       const formatted = new Intl.NumberFormat("en-US", {
+//         style: "currency",
+//         currency: "USD",
+//       }).format(amount);
+
+//       return <div className="text-right font-medium">{formatted}</div>;
+//     },
+//   },
+//   {
+//     id: "actions",
+//     enableHiding: false,
+//     cell: ({ row }) => {
+//       const payment = row.original;
+
+//       return (
+//         <DropdownMenu>
+//           <DropdownMenuTrigger asChild>
+//             <ButtonShad variant="ghost" className="h-8 w-8 p-0">
+//               <span className="sr-only">Open menu</span>
+//               <MoreHorizontal />
+//             </ButtonShad>
+//           </DropdownMenuTrigger>
+//           <DropdownMenuContent align="end">
+//             <DropdownMenuLabel>Actions</DropdownMenuLabel>
+//             <DropdownMenuItem
+//               onClick={() => navigator.clipboard.writeText(payment.id)}
+//             >
+//               Copy payment ID
+//             </DropdownMenuItem>
+//             <DropdownMenuSeparator />
+//             <DropdownMenuItem>View customer</DropdownMenuItem>
+//             <DropdownMenuItem>View payment details</DropdownMenuItem>
+//           </DropdownMenuContent>
+//         </DropdownMenu>
+//       );
+//     },
+//   },
+// ];
 
 function DataTableDemo() {
   const [sorting, setSorting] = React.useState([]);
@@ -223,11 +308,21 @@ function DataTableDemo() {
     } else statusTable.setFilterValue([value]);
   }
 
-  function statusFeedback(bool, id) {
-    const values = JSON.parse(localStorage.getItem("solicitacoes-admin"));
-    values[id].status = bool ? "Aceito" : "Recusado";
-    localStorage.setItem("solicitacoes-admin", values);
-    setTableData(values);
+  function statusFeedback(isAccepted, id) {
+    const solicitations = JSON.parse(localStorage.getItem("solicitacoes-admin"));
+    const solicitation = solicitations[id];
+    if(isAccepted) {
+      const message = `Solicitação nº ${solicitation.id} de ${solicitation.cliente} foi aceita`;
+      solicitation.status = "Aceito";
+      toast.success(message);
+    }
+    else {
+      const message = `Solicitação nº ${solicitation.id} de ${solicitation.cliente} foi recusada`;
+      solicitation.status = "Recusado";
+      toast.info(message);
+    }
+    localStorage.setItem("solicitacoes-admin", solicitation);
+    setTableData(solicitations);
   }
 
   const columns = getColumns({
