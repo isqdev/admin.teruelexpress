@@ -1,4 +1,4 @@
-import { Button, ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel, InputMessage, SectionApp, AppHeader, Modal, Shape, ModalConfirm} from "@/components";
+import { Button, ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel, InputMessage, SectionApp, AppHeader, Modal, Shape, ModalConfirm } from "@/components";
 import * as React from "react";
 import {
   flexRender,
@@ -30,17 +30,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import {Button as ButtonShad} from "@/components/ui/button"
+import { Button as ButtonShad } from "@/components/ui/button"
 import { ArrowLeft, ArrowRight, Check, X } from "phosphor-react";
 import { toast, Toaster } from "sonner";
-import { useIsMobile } from "@/hooks/use-mobile" 
-
+import { useIsMobile } from "@/hooks/use-mobile"
 
 export function Orders() {
   // getInfo() ?? setInfo(); Vai ter que ter algo assim nos services
   // setInfo();
-  React.useEffect( () => {
-
+  React.useEffect(() => {
     localStorage.setItem("solicitacoes-admin", JSON.stringify(data));
   })
 
@@ -48,8 +46,8 @@ export function Orders() {
     <>
       <SectionApp>
         <AppHeader screenTitle="Solicitações" />
-        <DataTableDemo /> 
-        <Toaster position="top-right" richColors/>
+        <DataTableDemo />
+        <Toaster position="top-right" richColors />
       </SectionApp>
     </>
   );
@@ -107,7 +105,7 @@ const data = [
   },
 ];
 
-const getColumns = ({ onCancelClick }) => [
+const getColumns = ({ onCancelClick, onAcceptClick }) => [
   {
     accessorKey: "id",
     header: "ID",
@@ -118,19 +116,19 @@ const getColumns = ({ onCancelClick }) => [
   {
     accessorKey: "data",
     header: "Data",
-    sortingFn: (rowA, rowB, columnId) => {
-      function parseDate(dateString) {
-        const parts = dateString.split("/");
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1;
-        const year = parseInt(parts[2], 10);
+    // sortingFn: (rowA, rowB, columnId) => {
+    //   function parseDate(dateString) {
+    //     const parts = dateString.split("/");
+    //     const day = parseInt(parts[0], 10);
+    //     const month = parseInt(parts[1], 10) - 1;
+    //     const year = parseInt(parts[2], 10);
 
-        return new Date(year, month, day);
-      }
-      rowA = parseDate(rowA.getValue(columnId))
-      rowB = parseDate(rowB.getValue(columnId))
-      return rowA > rowB ? 1 : rowA < rowB ? -1 : 0
-    },
+    //     return new Date(year, month, day);
+    //   }
+    //   rowA = parseDate(rowA.getValue(columnId))
+    //   rowB = parseDate(rowB.getValue(columnId))
+    //   return rowA > rowB ? 1 : rowA < rowB ? -1 : 0
+    // },
     cell: ({ row }) => (
       <div className="capitalize">{row.getValue("data")}</div>
     ),
@@ -146,10 +144,10 @@ const getColumns = ({ onCancelClick }) => [
     accessorKey: "origem",
     header: "Origem/Destino",
     cell: ({ row }) => (
-      <div className="capitalize">{    
+      <div className="capitalize">{
         `${JSON.parse(localStorage.getItem("solicitacoes-admin"))[row.index].origem}/${JSON.parse(localStorage.getItem("solicitacoes-admin"))[row.index].destino}`}</div>
-        //   <div className="capitalize">{row.getValue("origem")}</div>
-        // (<div className="capitalize">{getOriginDestiny(row.index)}</div>),
+      //   <div className="capitalize">{row.getValue("origem")}</div>
+      // (<div className="capitalize">{getOriginDestiny(row.index)}</div>),
     ),
   },
   {
@@ -166,16 +164,18 @@ const getColumns = ({ onCancelClick }) => [
     cell: ({ row }) => {
       return (
         <div>
-        <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'Pendente' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`}  onClick={() => 
-          {
-            if(row.getValue("status") == "pendente")
-             onCancelClick(row.original)
+          <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'Pendente' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={() => {
+            if (row.getValue("status") == "pendente")
+              onCancelClick(row.original)
           }}>
-          <X/>
-        </ButtonShad>
-        <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'Pendente' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`}>
-          <Check/>
-        </ButtonShad>
+            <X />
+          </ButtonShad>
+          <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'Pendente' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={() => {
+            if (row.getValue("status") == "pendente")
+              onAcceptClick(row.original)
+          }}>
+            <Check />
+          </ButtonShad>
         </div>
       );
     },
@@ -278,13 +278,13 @@ function DataTableDemo() {
   const [tableData, setTableData] = React.useState([]);
   const isMobile = useIsMobile();
 
- React.useEffect(() => {
-      setColumnVisibility({
-        id: !isMobile,
-        origem: !isMobile,
-        aceitar: !isMobile,
-      })
-    }, [isMobile])
+  React.useEffect(() => {
+    setColumnVisibility({
+      id: !isMobile,
+      origem: !isMobile,
+      aceitar: !isMobile,
+    })
+  }, [isMobile])
 
   React.useEffect(() => {
     setTableData(JSON.parse(localStorage.getItem("solicitacoes-admin")));
@@ -292,8 +292,8 @@ function DataTableDemo() {
 
   const columns = getColumns({
     onCancelClick: setSelectedRow,
-    // onStatusClick: handleStatus
-    })
+    onAcceptClick: setSelectedRow,
+  })
 
   const table = useReactTable({
     data: tableData,
@@ -321,38 +321,35 @@ function DataTableDemo() {
 
   return (
     <div className="w-full pt-5">
-      {/* <div className="flex items-center py-4">
-        <Input
-          placeholder="Filter emails..."
-          value={table.getColumn("email")?.getFilterValue() ?? ""}
-          onChange={event =>
-            table.getColumn("email")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
-        />
+      <div className="flex items-center py-4">
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <ButtonShad variant="outline" className="ml-auto">
-              Columns <ChevronDown />
+            <ButtonShad variant="outline">
+              Status <ChevronDown />
             </ButtonShad>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter(column => column.getCanHide())
-              .map(column => (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  className="capitalize"
-                  checked={column.getIsVisible()}
-                  onCheckedChange={value => column.toggleVisibility(!!value)}
-                >
-                  {column.id}
-                </DropdownMenuCheckboxItem>
-              ))}
+          <DropdownMenuContent className="justify-center px-0">
+          <DropdownMenuCheckboxItem 
+            onCheckedChange={() => {table.getColumn("status").getFilterValue() == null ? table.getColumn("status").setFilterValue("Aceito") : table.getColumn("status").setFilterValue("")}}
+          >
+              Aceito
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              onCheckedChange={() => {table.getColumn("status").getFilterValue() == null ? table.getColumn("status").setFilterValue("Recusado") : table.getColumn("status").setFilterValue("")}}
+            >
+              Recusado
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              onCheckedChange={() => {table.getColumn("status").getFilterValue() == null ? table.getColumn("status").setFilterValue("Pendente") : table.getColumn("status").setFilterValue("")}}
+            >
+              Pendente
+            </DropdownMenuCheckboxItem>
+
           </DropdownMenuContent>
         </DropdownMenu>
-      </div> */}
+
+      </div>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -363,9 +360,9 @@ function DataTableDemo() {
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -412,7 +409,7 @@ function DataTableDemo() {
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            <ArrowLeft className="icon"/>
+            <ArrowLeft className="icon" />
           </ButtonShad>
           <ButtonShad
             variant="outline"
@@ -420,7 +417,7 @@ function DataTableDemo() {
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            <ArrowRight className="icon"/> 
+            <ArrowRight className="icon" />
           </ButtonShad>
         </div>
       </div>
@@ -433,12 +430,18 @@ function DataTableDemo() {
   );
 }
 
-function ModalOrders({ open, data, onClose}) {
-  if (!open) return null; 
+function ModalOrders({ open, data, onClose }) {
+  if (!open) return null;
 
   return (
     <Modal open={open} data={data} onClose={onClose}>
-      {data.amount}
+      <Shape>
+        {data.cliente}
+        {data.data}
+        {data.origem}
+        {data.destino}
+      </Shape>
+
       <Button onClick={onClose}>
         <ButtonText className="text-center">Fechar modal</ButtonText>
       </Button>
