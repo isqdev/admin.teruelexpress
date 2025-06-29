@@ -105,7 +105,7 @@ const data = [
   },
 ];
 
-const getColumns = ({ onCancelClick, onAcceptClick, statusFeedback}) => [
+const getColumns = ({ onCancelClick, onAcceptClick, statusFeedback }) => [
   {
     accessorKey: "id",
     header: "ID",
@@ -175,7 +175,7 @@ const getColumns = ({ onCancelClick, onAcceptClick, statusFeedback}) => [
           <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'Pendente' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={() => {
             if (row.getValue("status") == "Pendente")
               // onCancelClick(row.original)
-              statusFeedback(false, row.id)              
+              statusFeedback(false, row.id)
           }}>
             <X />
           </ButtonShad>
@@ -207,6 +207,11 @@ function DataTableDemo() {
     setTableData(JSON.parse(localStorage.getItem("solicitacoes-admin")));
   }, [])
 
+  const isChecked = (value) => {
+    if (table.getColumn("status").getFilterValue() == null) return false;
+    else return table.getColumn("status").getFilterValue().includes(value);
+  }
+
   function filterStatus(value) {
     const statusTable = table.getColumn("status");
     const filteredValue = statusTable.getFilterValue();
@@ -217,12 +222,12 @@ function DataTableDemo() {
         statusTable.setFilterValue(prev => [...prev, value]);
     } else statusTable.setFilterValue([value]);
   }
-  
+
   function statusFeedback(bool, id) {
     const values = JSON.parse(localStorage.getItem("solicitacoes-admin"));
     values[id].status = bool ? "Aceito" : "Recusado";
     localStorage.setItem("solicitacoes-admin", values);
-    setTableData(values); 
+    setTableData(values);
   }
 
   const columns = getColumns({
@@ -267,37 +272,26 @@ function DataTableDemo() {
           </DropdownMenuTrigger>
           <DropdownMenuContent className="justify-center px-0">
             <DropdownMenuCheckboxItem
+              checked={isChecked("Aceito")}
               onCheckedChange={() => { filterStatus("Aceito") }}
             >
               Aceito
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
+              checked={isChecked("Recusado")}
               onCheckedChange={() => { filterStatus("Recusado") }}
             >
               Recusado
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
+              checked={isChecked("Pendente")}
               onCheckedChange={() => { filterStatus("Pendente") }}
             >
               Pendente
             </DropdownMenuCheckboxItem>
 
-            {/* {table
-              .getAllColumns()
-              .filter(column => column.getCanHide())
-              .map(column => (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  className="capitalize"
-                  checked={column.getIsVisible()}
-                  onCheckedChange={value => column.toggleVisibility(!!value)}
-                >
-                  {column.id}
-                </DropdownMenuCheckboxItem>
-              ))} */}
           </DropdownMenuContent>
         </DropdownMenu>
-
 
       </div>
       <div className="rounded-md border">
