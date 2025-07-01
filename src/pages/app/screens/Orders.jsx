@@ -1,43 +1,32 @@
-import { Button, ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel, InputMessage, SectionApp, AppHeader, Modal, Shape, ModalConfirm} from "@/components";
+import { Button, ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel, InputMessage, SectionApp, AppHeader, Modal, Shape, ModalConfirm } from "@/components";
 import * as React from "react";
-import {
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
-
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-
-import {Button as ButtonShad} from "@/components/ui/button"
+import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
+import { ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button as ButtonShad } from "@/components/ui/button"
+import { ArrowLeft, ArrowRight, Check, X } from "phosphor-react";
+import { toast, Toaster } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile"
+import { format } from "date-fns"
+import { Calendar as CalendarIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { DayPicker as Calendar } from "react-day-picker"
+import { Popover, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover"
 
 export function Orders() {
+  // getInfo() ?? setInfo(); Vai ter que ter algo assim nos services
+  // setInfo();
+  React.useEffect(() => {
+    localStorage.setItem("solicitacoes-admin", JSON.stringify(data));
+  })
+
   return (
     <>
       <SectionApp>
         <AppHeader screenTitle="Solicitações" />
         <DataTableDemo />
+        <Toaster position="top-right" richColors />
       </SectionApp>
     </>
   );
@@ -45,119 +34,129 @@ export function Orders() {
 
 const data = [
   {
-    id: "m5gr84i9",
-    amount: 316,
-    status: "success",
-    email: "ken99@example.com",
+    id: 10,
+    data: "10/10/2025",
+    cliente: "Gerdau",
+    origem: "Paranavaí",
+    destino: "Nova Esperança",
+    status: "Aceito",
+    aceitar: "X ✓"
   },
   {
-    id: "3u1reuv4",
-    amount: 242,
-    status: "success",
-    email: "Abe45@example.com",
+    id: 11,
+    data: "10/11/2025",
+    cliente: "Fipal",
+    origem: "Paranavaí",
+    destino: "Nova Esperança",
+    status: "Pendente",
   },
   {
-    id: "derv1ws0",
-    amount: 837,
-    status: "processing",
-    email: "Monserrat44@example.com",
+    id: 12,
+    data: "10/12/2025",
+    cliente: "Eletrohitiz",
+    origem: "Paranavaí",
+    destino: "Nova Esperança",
+    status: "Recusado",
   },
   {
-    id: "5kma53ae",
-    amount: 874,
-    status: "success",
-    email: "Silas22@example.com",
+    id: 13,
+    data: "11/12/2025",
+    cliente: "Gerdau",
+    origem: "Paranavaí",
+    destino: "Nova Esperança",
+    status: "Aceito",
   },
   {
-    id: "bhqecj4p",
-    amount: 721,
-    status: "failed",
-    email: "carmella@example.com",
+    id: 14,
+    data: "10/12/2025",
+    cliente: "Fipal",
+    origem: "Paranavaí",
+    destino: "Nova Esperança",
+    status: "Recusado",
+  },
+  {
+    id: 15,
+    data: "11/12/2025",
+    cliente: "ViaVerde",
+    origem: "Paranavaí",
+    destino: "Nova Esperança",
+    status: "Aceito",
   },
 ];
 
-const columns = [
+const getColumns = ({ statusFeedback }) => [
   {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
+    accessorKey: "id",
+    header: "ID",
     cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={value => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
+      <div className="capitalize">{row.getValue("id")}</div>
     ),
-    enableSorting: false,
-    enableHiding: false,
+  },
+  {
+    accessorKey: "data",
+    header: "Data",
+    sortingFn: (rowA, rowB, columnId) => {
+      function parseDate(dateString) {
+        const parts = dateString.split("/");
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+
+        return new Date(year, month, day);
+      }
+      rowA = parseDate(rowA.getValue(columnId))
+      rowB = parseDate(rowB.getValue(columnId))
+      return rowA > rowB ? 1 : rowA < rowB ? -1 : 0
+    },
+    cell: ({ row }) => (
+      <div className="capitalize">{row.getValue("data")}</div>
+    ),
+  },
+  {
+    accessorKey: "cliente",
+    header: "Cliente",
+    cell: ({ row }) => (
+      <div className="capitalize">{row.getValue("cliente")}</div>
+    ),
+  },
+  {
+    accessorKey: "origem",
+    header: "Origem/Destino",
+    cell: ({ row }) => (
+      <div className="capitalize">{
+        `${JSON.parse(localStorage.getItem("solicitacoes-admin"))[row.index].origem}/${JSON.parse(localStorage.getItem("solicitacoes-admin"))[row.index].destino}`}</div>
+      //   <div className="capitalize">{row.getValue("origem")}</div>
+      // (<div className="capitalize">{getOriginDestiny(row.index)}</div>),
+    ),
   },
   {
     accessorKey: "status",
     header: "Status",
+    filterFn: "arrIncludesSome",
     cell: ({ row }) => (
       <div className="capitalize">{row.getValue("status")}</div>
     ),
   },
   {
-    accessorKey: "email",
-    header: ({ column }) => (
-      <ButtonShad
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Email
-        <ArrowUpDown />
-      </ButtonShad>
-    ),
-    cell: ({ row }) => <div className="lowercase">{row.getValue("email")}</div>,
-  },
-  {
-    accessorKey: "amount",
-    header: () => <div className="text-right">Amount</div>,
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("amount"));
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(amount);
-
-      return <div className="text-right font-medium">{formatted}</div>;
-    },
-  },
-  {
     id: "actions",
     enableHiding: false,
+    header: "Aceitar",
     cell: ({ row }) => {
-      const payment = row.original;
-
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <ButtonShad variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal />
-            </ButtonShad>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(payment.id)}
-            >
-              Copy payment ID
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>View customer</DropdownMenuItem>
-            <DropdownMenuItem>View payment details</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex gap-x-3 justify-center">
+          <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'Pendente' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={() => {
+            if (row.getValue("status") == "Pendente")
+              statusFeedback(true, row.id)
+          }}>
+            <Check />
+          </ButtonShad>
+          <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'Pendente' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={() => {
+            if (row.getValue("status") == "Pendente")
+              statusFeedback(false, row.id)
+          }}>
+            <X />
+          </ButtonShad>
+        </div>
       );
     },
   },
@@ -169,9 +168,62 @@ function DataTableDemo() {
   const [columnVisibility, setColumnVisibility] = React.useState({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [selectedRow, setSelectedRow] = React.useState(null);
+  const [tableData, setTableData] = React.useState([]);
+  const isMobile = useIsMobile();
+
+  React.useEffect(() => {
+    setColumnVisibility({
+      id: !isMobile,
+      origem: !isMobile,
+      aceitar: !isMobile,
+    })
+  }, [isMobile])
+
+  React.useEffect(() => {
+    setTableData(JSON.parse(localStorage.getItem("solicitacoes-admin")));
+  }, [])
+
+  const isChecked = (value) => {
+    if (table.getColumn("status").getFilterValue() == null) return false;
+    else return table.getColumn("status").getFilterValue().includes(value);
+  }
+
+  function filterStatus(value) {
+    const statusTable = table.getColumn("status");
+    const filteredValue = statusTable.getFilterValue();
+    if (filteredValue != null) {
+      if (filteredValue.includes(value))
+        statusTable.setFilterValue(filteredValue.filter(stat => stat != value));
+      else
+        statusTable.setFilterValue(prev => [...prev, value]);
+    } else statusTable.setFilterValue([value]);
+  }
+
+  function statusFeedback(isAccepted, id) {
+    const solicitations = JSON.parse(localStorage.getItem("solicitacoes-admin"));
+    const solicitation = solicitations[id];
+    if (isAccepted) {
+      const message = `Solicitação nº ${solicitation.id} de ${solicitation.cliente} foi aceita`;
+      solicitation.status = "Aceito";
+      toast.success(message);
+    }
+    else {
+      const message = `Solicitação nº ${solicitation.id} de ${solicitation.cliente} foi recusada`;
+      solicitation.status = "Recusado";
+      toast.info(message);
+    }
+    localStorage.setItem("solicitacoes-admin", solicitation);
+    setTableData(solicitations);
+  }
+
+  const columns = getColumns({
+    onCancelClick: setSelectedRow,
+    onAcceptClick: setSelectedRow,
+    statusFeedback: statusFeedback,
+  })
 
   const table = useReactTable({
-    data,
+    data: tableData,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -182,46 +234,57 @@ function DataTableDemo() {
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     state: {
-      sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
     },
+    initialState: {
+      pagination: {
+        pageSize: 20
+      },
+      sorting: [
+        {
+          id: 'data',
+          desc: true,
+        },
+      ],
+    },
   });
 
   return (
-    <div className="w-full">
+    <div className="w-full pt-5">
       <div className="flex items-center py-4">
-        <Input
-          placeholder="Filter emails..."
-          value={table.getColumn("email")?.getFilterValue() ?? ""}
-          onChange={event =>
-            table.getColumn("email")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
-        />
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <ButtonShad variant="outline" className="ml-auto">
-              Columns <ChevronDown />
+            <ButtonShad variant="outline">
+              Status <ChevronDown />
             </ButtonShad>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter(column => column.getCanHide())
-              .map(column => (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  className="capitalize"
-                  checked={column.getIsVisible()}
-                  onCheckedChange={value => column.toggleVisibility(!!value)}
-                >
-                  {column.id}
-                </DropdownMenuCheckboxItem>
-              ))}
+          <DropdownMenuContent className="justify-center px-0">
+            <DropdownMenuCheckboxItem
+              checked={isChecked("Aceito")}
+              onCheckedChange={() => { filterStatus("Aceito") }}
+            >
+              Aceito
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={isChecked("Recusado")}
+              onCheckedChange={() => { filterStatus("Recusado") }}
+            >
+              Recusado
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={isChecked("Pendente")}
+              onCheckedChange={() => { filterStatus("Pendente") }}
+            >
+              Pendente
+            </DropdownMenuCheckboxItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <DatePickerDemo></DatePickerDemo>
+
       </div>
       <div className="rounded-md border">
         <Table>
@@ -229,13 +292,13 @@ function DataTableDemo() {
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map(header => (
-                  <TableHead key={header.id}>
+                  <TableHead key={header.id} className="text-center font-bold">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -246,7 +309,7 @@ function DataTableDemo() {
               table.getRowModel().rows.map(row => (
                 <TableRow
                   key={row.id}
-                  className="hover:cursor-pointer"
+                  className="hover:cursor-pointer text-center"
                   onClick={() => setSelectedRow(row.original)}
                   data-state={row.getIsSelected() && "selected"}
                 >
@@ -271,10 +334,6 @@ function DataTableDemo() {
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="text-muted-foreground flex-1 text-sm">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
         <div className="space-x-2">
           <ButtonShad
             variant="outline"
@@ -282,7 +341,7 @@ function DataTableDemo() {
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            Previous
+            <ArrowLeft className="icon" />
           </ButtonShad>
           <ButtonShad
             variant="outline"
@@ -290,7 +349,7 @@ function DataTableDemo() {
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Next
+            <ArrowRight className="icon" />
           </ButtonShad>
         </div>
       </div>
@@ -303,15 +362,43 @@ function DataTableDemo() {
   );
 }
 
-function ModalOrders({ open, data, onClose}) {
-  if (!open) return null; 
+function ModalOrders({ open, data, onClose }) {
+  if (!open) return null;
 
   return (
     <Modal open={open} data={data} onClose={onClose}>
-      {data.amount}
+      <Shape>
+        {data.cliente}
+        {data.data}
+        {data.origem}
+        {data.destino}
+      </Shape>
+
       <Button onClick={onClose}>
         <ButtonText className="text-center">Fechar modal</ButtonText>
       </Button>
     </Modal>
+  )
+}
+
+export function DatePickerDemo() {
+  const [date, setDate] = React.useState([]);
+ 
+  return (
+    <Popover >
+      <PopoverTrigger asChild>
+        <Button
+          variant=""
+          data-empty={!date.length}
+          className="data-[empty=true]:text-muted-foreground w-[280px] justify-start text-left font-normal"
+        >
+          <CalendarIcon />
+          {date.length ? date.map(d => d && format(d, "PPP")).join(", ") : <span>Pick a date</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-81 p-3 bg-gray-100 z-3">
+        <Calendar mode="multiple" selected={date} onSelect={setDate} />
+      </PopoverContent>
+    </Popover>
   )
 }
