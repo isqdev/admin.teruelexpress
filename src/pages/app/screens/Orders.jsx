@@ -40,7 +40,7 @@ const data = [
     cliente: "Gerdau",
     origem: "Paranavaí",
     destino: "Nova Esperança",
-    status: "Aceito",
+    status: "Pendente",
     pacotes: [
       {
         loadType: "envelope",
@@ -115,6 +115,28 @@ const data = [
     pacotes: [],
   },
 ];
+
+const addresses = [
+  // "origem":
+  {
+    cep: "87701050",
+    estado: "pr",
+    cidade: "paranavaí",
+    bairro: "Jardim Nakamura",
+    rua: "Rua Professora Enira Braga de Moraes",
+    numero: "56"
+  },
+  // "destino":
+  {
+    cep: "87701050",
+    estado: "pr",
+    cidade: "paranavaí",
+    bairro: "Jardim Nakamura",
+    rua: "Rua Professora Enira Braga de Moraes",
+    numero: "57"
+  },
+]
+
 
 const getColumns = ({ statusFeedback }) => [
   {
@@ -398,26 +420,34 @@ function ModalOrders({ open, data, onClose, statusFeedback }) {
   const isPending = data.status == "Pendente";
 
   return (
-    <Modal open={open} data={data} onClose={onClose}>
+    <Modal open={open} data={data} onClose={onClose} className="max-w-241">
       <div className="flex gap-5">
-        <Shape className="border-gray-600 border-1 flex flex-col sm:pt-2 sm:pb-5 sm:pl-4">
+        <Shape className="border-gray-600 border-1 flex flex-col sm:pt-2 sm:pb-5 sm:px-4">
           <InputLabel>Solicitação</InputLabel>
-          <div className="flex flex-row gap-25">
+
+          <div className="flex flex-row gap-15">
             <div className=" flex flex-col">
-              <InputLabel className="sm:text-xs pt-3">Cliente</InputLabel>
+              <InputLabel className="sm:text-xs mt-3">Cliente</InputLabel>
               {1 === 1 ? <InputLabel className="font-normal">Gerdau</InputLabel> : data.cliente}
             </div>
             <div className="flex flex-col">
               <InputLabel className="sm:text-xs mt-3">Data</InputLabel>
               {1 === 1 ? <InputLabel className="font-normal">10/08/2025</InputLabel> : data.data}
             </div>
+            <div className="flex flex-col">
+              <InputLabel className="sm:text-xs mt-3">Status</InputLabel>
+              {1 === 1 ? <InputLabel className="font-normal">Pendente</InputLabel> : data.status}
+            </div>
           </div>
+
           <InputLabel className="sm:text-xs my-1">Carga</InputLabel>
-          <Shape className="bg-gray-50">
+          <Shape className="bg-gray-50 sm:pl-3 sm:pt-3 h-full">
             <PackageList packages={data.pacotes} />
           </Shape>
+
         </Shape>
-        <Shape className="border-gray-600 border-1 flex flex-col sm:pt-2 sm:pb-5 sm:pl-4">
+
+        {/* <Shape className="border-gray-600 border-1 flex flex-col sm:pt-2 sm:pb-5 sm:pl-4">
           <InputLabel>Endereço de Origem</InputLabel>
           <InputLabel className="sm:text-xs mt-3">CEP</InputLabel> {1 === 1 ? <InputLabel className="font-normal">87808-500</InputLabel> : data.cliente}
           <InputLabel className="sm:text-xs mt-3">Estado</InputLabel> {1 === 1 ? <InputLabel className="font-normal">Paraná</InputLabel> : data.cliente}
@@ -425,24 +455,35 @@ function ModalOrders({ open, data, onClose, statusFeedback }) {
           <InputLabel className="sm:text-xs mt-4">Bairro</InputLabel> {1 === 1 ? <InputLabel className="font-normal">Fenda do Biquini</InputLabel> : data.cliente}
           <InputLabel className="sm:text-xs mt-3">Rua</InputLabel> {1 === 1 ? <InputLabel className="font-normal">Rua 10</InputLabel> : data.cliente}
           <InputLabel className="sm:text-xs mt-3">Número</InputLabel> {1 === 1 ? <InputLabel className="font-normal">7</InputLabel> : data.cliente}
-        </Shape>
+        </Shape> */}
+        <AdressList adress={addresses[0]} title="Endereço de Origem" />
+        <AdressList adress={addresses[1]} title="Endereço de Destino"/>
 
       </div>
-      <div className="flex mt-5 justify-self-end gap-2">
-        <Button className="w-50 h-10 sm:h-12" onClick={onClose}>
-          <ButtonText className="text-center">Fechar modal</ButtonText>
-        </Button>
-        <Button className="bg-red-50 text-danger-base w-50 h-10 sm:h-12" onClick={() => {
-          if (isPending) statusFeedback(false, JSON.parse(localStorage.getItem("solicitacoes-admin")).findIndex(info => info.id == data.id))
-        }}>
-          <ButtonText className="text-center">Recusar</ButtonText>
-        </Button>
-        <Button className="bg-red-tx w-50 h-10 sm:h-12" onClick={() => {
-          if (isPending) statusFeedback(true, JSON.parse(localStorage.getItem("solicitacoes-admin")).findIndex(info => info.id == data.id))
-        }}>
-          <ButtonText className="text-center text-white">Aceitar</ButtonText>
-        </Button>
-      </div>
+      {(
+        isPending ? (
+          <div className="flex mt-5 justify-self-end gap-2">
+            <Button className="w-50 h-10 sm:h-12" onClick={onClose}>
+              <ButtonText className="text-center">Fechar modal</ButtonText>
+            </Button>
+            <Button className="bg-red-50 text-danger-base w-50 h-10 sm:h-12" onClick={() => {
+              if (isPending) statusFeedback(false, JSON.parse(localStorage.getItem("solicitacoes-admin")).findIndex(info => info.id == data.id))
+            }}>
+              <ButtonText className="text-center">Recusar</ButtonText>
+            </Button>
+            <Button className="bg-red-tx w-50 h-10 sm:h-12" onClick={() => {
+              if (isPending) statusFeedback(true, JSON.parse(localStorage.getItem("solicitacoes-admin")).findIndex(info => info.id == data.id))
+            }}>
+              <ButtonText className="text-center text-white">Aceitar</ButtonText>
+            </Button>
+          </div>
+        )
+          : (
+            <Button className="mt-5" onClick={onClose}>
+              <ButtonText className="text-center">Fechar modal</ButtonText>
+            </Button>
+          )
+      )}
     </Modal>
   )
 }
@@ -478,20 +519,38 @@ function PackageList({ packages }) {
         <p className="text-gray-600 text-center">Nenhum pacote adicionado</p>
       ) : (
         packages.map((pkg, index) => (
-          <div key={index} className="flex gap-3 justify-between">
-            <div className="flex gap-2">
+          <div key={index} className="flex gap-y-3 justify-between">
+            <div className="flex gap-x-3 items-center">
               {pkg.loadType === "caixa" && <Package className="icon" />}
               {pkg.loadType === "envelope" && <File className="icon" />}
               {pkg.loadType === "sacola" && <ToteSimple className="icon" />}
-              <p className="capitalize">{pkg.loadType}</p>
-              <p>{`${pkg.width || 0}x${pkg.height || 0}x${pkg.length || 0}    ${pkg.weight || 0}kg`}</p>
-            </div>
-            <div className="flex gap-2 items-center">
-              <p>Qtd:{pkg.amount || 1}</p>
+              <span className="capitalize">{pkg.loadType}</span>
+              <span>{`${pkg.width || 0}x${pkg.height || 0}x${pkg.length || 0}cm`}</span>
+              <span>{`${pkg.weight || 0}kg`}</span>
+              <span>Qtd:{pkg.amount || 1}</span>
             </div>
           </div>
         ))
       )}
     </div>
+  );
+}
+
+function AdressList({ adress, title }) {
+  const labels = ["CEP", "Estado", "Cidade", "Bairro", "Rua", "Número"];
+  console.log(labels.length);
+
+  const mocks = ["87808-500", "Paraná", "Paranavaí", "Fenda do Biquini", "Rua 10", "7"];
+
+  return (
+    <Shape className="border-gray-600 border-1 sm:pt-2 sm:pb-5 sm:pl-4 max-w-60">
+      <InputLabel>{title}</InputLabel>
+      {labels.map((label, index) => (
+        <div className="flex flex-col mt-3" key={index}>
+          <InputLabel className="sm:text-xs">{label}</InputLabel>
+          <InputLabel className="font-normal">{1 == 1 ? mocks[index] : adress.cliente}</InputLabel>
+        </div>
+      ))}
+    </Shape>
   );
 }
