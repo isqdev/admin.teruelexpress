@@ -135,8 +135,7 @@ const addresses = [
     rua: "Rua Professora Enira Braga de Moraes",
     numero: "57"
   },
-]
-
+];
 
 const getColumns = ({ statusFeedback }) => [
   {
@@ -305,7 +304,7 @@ function DataTableDemo() {
 
   return (
     <div className="w-full pt-5">
-      <div className="flex items-center py-4">
+      <div className="flex items-center py-4 gap-x-3">
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -497,10 +496,11 @@ export function DatePickerDemo() {
         <Button
           variant=""
           data-empty={!date.length}
-          className="data-[empty=true]:text-muted-foreground w-[280px] justify-start text-left font-normal"
+          className=" hover:cursor-pointer hover:scale-none hover:opacity-90 data-[empty=true]:text-muted-foreground w-60 text-left inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium disabled:pointer-events-none focus-visible:ring-ring/50 border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground sm:h-9 py-2 has-[>svg]:px-3"
         >
           <CalendarIcon />
-          <span>Pick a date</span>
+          <ButtonText className="sm:text-base font-normal">Escolha uma data</ButtonText>
+          <ChevronDown />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="z-3">
