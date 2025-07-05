@@ -4,20 +4,21 @@ import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel
 import { ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Calendar } from "@/components/ui/calendar";
 import { Button as ButtonShad } from "@/components/ui/button"
-import { ArrowLeft, ArrowRight, Check, X } from "phosphor-react";
+import { ArrowLeft, ArrowRight, Check, File, Package, ToteSimple, X } from "phosphor-react";
 import { toast, Toaster } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile"
 import { format } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { DayPicker as Calendar } from "react-day-picker"
 import { Popover, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover"
 
 export function Orders() {
   // getInfo() ?? setInfo(); Vai ter que ter algo assim nos services
   // setInfo();
   React.useEffect(() => {
+    // localStorage.getItem("solicitacoes-admin") ?? localStorage.setItem("solicitacoes-admin", JSON.stringify(data));
     localStorage.setItem("solicitacoes-admin", JSON.stringify(data));
   })
 
@@ -40,6 +41,32 @@ const data = [
     origem: "Paranavaí",
     destino: "Nova Esperança",
     status: "Aceito",
+    pacotes: [
+      {
+        loadType: "envelope",
+        width: 0,
+        height: 1,
+        length: 0,
+        weight: 0,
+        amount: 5,
+      },
+      {
+        loadType: "caixa",
+        width: 2,
+        height: 0,
+        length: 0,
+        weight: 4,
+        amount: 1,
+      },
+      {
+        loadType: "sacola",
+        width: 0,
+        height: 0,
+        length: 3,
+        weight: 0,
+        amount: 1,
+      }
+    ],
     aceitar: "X ✓"
   },
   {
@@ -49,6 +76,7 @@ const data = [
     origem: "Paranavaí",
     destino: "Nova Esperança",
     status: "Pendente",
+    pacotes: [],
   },
   {
     id: 12,
@@ -57,6 +85,7 @@ const data = [
     origem: "Paranavaí",
     destino: "Nova Esperança",
     status: "Recusado",
+    pacotes: [],
   },
   {
     id: 13,
@@ -65,6 +94,7 @@ const data = [
     origem: "Paranavaí",
     destino: "Nova Esperança",
     status: "Aceito",
+    pacotes: [],
   },
   {
     id: 14,
@@ -73,6 +103,7 @@ const data = [
     origem: "Paranavaí",
     destino: "Nova Esperança",
     status: "Recusado",
+    pacotes: [],
   },
   {
     id: 15,
@@ -81,6 +112,7 @@ const data = [
     origem: "Paranavaí",
     destino: "Nova Esperança",
     status: "Aceito",
+    pacotes: [],
   },
 ];
 
@@ -212,13 +244,11 @@ function DataTableDemo() {
       solicitation.status = "Recusado";
       toast.info(message);
     }
-    localStorage.setItem("solicitacoes-admin", solicitation);
+    localStorage.setItem("solicitacoes-admin", JSON.stringify(solicitations));
     setTableData(solicitations);
   }
 
   const columns = getColumns({
-    onCancelClick: setSelectedRow,
-    onAcceptClick: setSelectedRow,
     statusFeedback: statusFeedback,
   })
 
@@ -357,33 +387,69 @@ function DataTableDemo() {
         open={!!selectedRow}
         data={selectedRow}
         onClose={() => setSelectedRow(null)}
+        statusFeedback={statusFeedback}
       />
     </div>
   );
 }
 
-function ModalOrders({ open, data, onClose }) {
+function ModalOrders({ open, data, onClose, statusFeedback }) {
   if (!open) return null;
+  const isPending = data.status == "Pendente";
 
   return (
     <Modal open={open} data={data} onClose={onClose}>
-      <Shape>
-        {data.cliente}
-        {data.data}
-        {data.origem}
-        {data.destino}
-      </Shape>
+      <div className="flex gap-5">
+        <Shape className="border-gray-600 border-1 flex flex-col sm:pt-2 sm:pb-5 sm:pl-4">
+          <InputLabel>Solicitação</InputLabel>
+          <div className="flex flex-row gap-25">
+            <div className=" flex flex-col">
+              <InputLabel className="sm:text-xs pt-3">Cliente</InputLabel>
+              {1 === 1 ? <InputLabel className="font-normal">Gerdau</InputLabel> : data.cliente}
+            </div>
+            <div className="flex flex-col">
+              <InputLabel className="sm:text-xs mt-3">Data</InputLabel>
+              {1 === 1 ? <InputLabel className="font-normal">10/08/2025</InputLabel> : data.data}
+            </div>
+          </div>
+          <InputLabel className="sm:text-xs my-1">Carga</InputLabel>
+          <Shape className="bg-gray-50">
+            <PackageList packages={data.pacotes} />
+          </Shape>
+        </Shape>
+        <Shape className="border-gray-600 border-1 flex flex-col sm:pt-2 sm:pb-5 sm:pl-4">
+          <InputLabel>Endereço de Origem</InputLabel>
+          <InputLabel className="sm:text-xs mt-3">CEP</InputLabel> {1 === 1 ? <InputLabel className="font-normal">87808-500</InputLabel> : data.cliente}
+          <InputLabel className="sm:text-xs mt-3">Estado</InputLabel> {1 === 1 ? <InputLabel className="font-normal">Paraná</InputLabel> : data.cliente}
+          <InputLabel className="sm:text-xs mt-4">Cidade</InputLabel> {1 === 1 ? <InputLabel className="font-normal">Paranavaí</InputLabel> : data.cliente}
+          <InputLabel className="sm:text-xs mt-4">Bairro</InputLabel> {1 === 1 ? <InputLabel className="font-normal">Fenda do Biquini</InputLabel> : data.cliente}
+          <InputLabel className="sm:text-xs mt-3">Rua</InputLabel> {1 === 1 ? <InputLabel className="font-normal">Rua 10</InputLabel> : data.cliente}
+          <InputLabel className="sm:text-xs mt-3">Número</InputLabel> {1 === 1 ? <InputLabel className="font-normal">7</InputLabel> : data.cliente}
+        </Shape>
 
-      <Button onClick={onClose}>
-        <ButtonText className="text-center">Fechar modal</ButtonText>
-      </Button>
+      </div>
+      <div className="flex mt-5 justify-self-end gap-2">
+        <Button className="w-50 h-10 sm:h-12" onClick={onClose}>
+          <ButtonText className="text-center">Fechar modal</ButtonText>
+        </Button>
+        <Button className="bg-red-50 text-danger-base w-50 h-10 sm:h-12" onClick={() => {
+          if (isPending) statusFeedback(false, JSON.parse(localStorage.getItem("solicitacoes-admin")).findIndex(info => info.id == data.id))
+        }}>
+          <ButtonText className="text-center">Recusar</ButtonText>
+        </Button>
+        <Button className="bg-red-tx w-50 h-10 sm:h-12" onClick={() => {
+          if (isPending) statusFeedback(true, JSON.parse(localStorage.getItem("solicitacoes-admin")).findIndex(info => info.id == data.id))
+        }}>
+          <ButtonText className="text-center text-white">Aceitar</ButtonText>
+        </Button>
+      </div>
     </Modal>
   )
 }
 
 export function DatePickerDemo() {
   const [date, setDate] = React.useState([]);
- 
+
   return (
     <Popover >
       <PopoverTrigger asChild>
@@ -393,12 +459,39 @@ export function DatePickerDemo() {
           className="data-[empty=true]:text-muted-foreground w-[280px] justify-start text-left font-normal"
         >
           <CalendarIcon />
-          {date.length ? date.map(d => d && format(d, "PPP")).join(", ") : <span>Pick a date</span>}
+          <span>Pick a date</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-81 p-3 bg-gray-100 z-3">
-        <Calendar mode="multiple" selected={date} onSelect={setDate} />
+      <PopoverContent className="z-3">
+        <Calendar mode="multiple" selected={date} onSelect={setDate} className="rounded-2xl border border-gray-00" />
+        <ButtonShad className={`float-end mt-1 hover:default:none ${!date.length ? "" : "hover:cursor-pointer"}`}>Filtrar</ButtonShad>
       </PopoverContent>
     </Popover>
   )
+}
+
+function PackageList({ packages }) {
+
+  return (
+    <div className="flex flex-col gap-2">
+      {packages.length === 0 ? (
+        <p className="text-gray-600 text-center">Nenhum pacote adicionado</p>
+      ) : (
+        packages.map((pkg, index) => (
+          <div key={index} className="flex gap-3 justify-between">
+            <div className="flex gap-2">
+              {pkg.loadType === "caixa" && <Package className="icon" />}
+              {pkg.loadType === "envelope" && <File className="icon" />}
+              {pkg.loadType === "sacola" && <ToteSimple className="icon" />}
+              <p className="capitalize">{pkg.loadType}</p>
+              <p>{`${pkg.width || 0}x${pkg.height || 0}x${pkg.length || 0}    ${pkg.weight || 0}kg`}</p>
+            </div>
+            <div className="flex gap-2 items-center">
+              <p>Qtd:{pkg.amount || 1}</p>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
 }
