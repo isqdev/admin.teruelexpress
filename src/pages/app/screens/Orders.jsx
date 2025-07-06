@@ -11,14 +11,14 @@ import { toast, Toaster } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover"
-import { dateString } from "@/utils/dateHandler";
+import { dateString, parseDate } from "@/utils/dateHandler";
+import { localStorageUtils } from "@/utils/localStorageUtils";
+import { data, addresses} from "@/services/orders";
 
 export function Orders() {
-  // getInfo() ?? setInfo(); Vai ter que ter algo assim nos services
-  // setInfo();
   React.useEffect(() => {
-    // localStorage.getItem("solicitacoes-admin") ?? localStorage.setItem("solicitacoes-admin", JSON.stringify(data));
-    localStorage.setItem("solicitacoes-admin", JSON.stringify(data));
+    localStorageUtils.getItem("solicitacoes-admin") ?? localStorageUtils.setItem("solicitacoes-admin", data);
+    localStorageUtils.getItem("addresses") ?? localStorageUtils.setItem("addresses", addresses);
   })
 
   return (
@@ -31,110 +31,6 @@ export function Orders() {
     </>
   );
 }
-
-const data = [
-  {
-    id: 10,
-    data: "10/10/2025",
-    cliente: "Gerdau",
-    origem: "Paranavaí",
-    destino: "Nova Esperança",
-    status: "Pendente",
-    pacotes: [
-      {
-        loadType: "envelope",
-        width: 0,
-        height: 1,
-        length: 0,
-        weight: 0,
-        amount: 5,
-      },
-      {
-        loadType: "caixa",
-        width: 2,
-        height: 0,
-        length: 0,
-        weight: 4,
-        amount: 1,
-      },
-      {
-        loadType: "sacola",
-        width: 0,
-        height: 0,
-        length: 3,
-        weight: 0,
-        amount: 1,
-      }
-    ],
-    aceitar: "X ✓"
-  },
-  {
-    id: 11,
-    data: "10/11/2025",
-    cliente: "Fipal",
-    origem: "Paranavaí",
-    destino: "Nova Esperança",
-    status: "Pendente",
-    pacotes: [],
-  },
-  {
-    id: 12,
-    data: "10/12/2025",
-    cliente: "Eletrohitiz",
-    origem: "Paranavaí",
-    destino: "Nova Esperança",
-    status: "Recusado",
-    pacotes: [],
-  },
-  {
-    id: 13,
-    data: "11/12/2025",
-    cliente: "Gerdau",
-    origem: "Paranavaí",
-    destino: "Nova Esperança",
-    status: "Aceito",
-    pacotes: [],
-  },
-  {
-    id: 14,
-    data: "13/12/2025",
-    cliente: "Fipal",
-    origem: "Paranavaí",
-    destino: "Nova Esperança",
-    status: "Recusado",
-    pacotes: [],
-  },
-  {
-    id: 15,
-    data: "11/12/2025",
-    cliente: "ViaVerde",
-    origem: "Paranavaí",
-    destino: "Nova Esperança",
-    status: "Aceito",
-    pacotes: [],
-  },
-];
-
-const addresses = [
-  // "origem":
-  {
-    cep: "87701050",
-    estado: "pr",
-    cidade: "paranavaí",
-    bairro: "Jardim Nakamura",
-    rua: "Rua Professora Enira Braga de Moraes",
-    numero: "56"
-  },
-  // "destino":
-  {
-    cep: "87701050",
-    estado: "pr",
-    cidade: "paranavaí",
-    bairro: "Jardim Nakamura",
-    rua: "Rua Professora Enira Braga de Moraes",
-    numero: "57"
-  },
-];
 
 const getColumns = ({ statusFeedback }) => [
   {
@@ -149,14 +45,6 @@ const getColumns = ({ statusFeedback }) => [
     header: "Data",
     filterFn: "arrIncludesSome",
     sortingFn: (rowA, rowB, columnId) => {
-      function parseDate(dateString) {
-        const parts = dateString.split("/");
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1;
-        const year = parseInt(parts[2], 10);
-
-        return new Date(year, month, day);
-      }
       rowA = parseDate(rowA.getValue(columnId))
       rowB = parseDate(rowB.getValue(columnId))
       return rowA > rowB ? 1 : rowA < rowB ? -1 : 0
@@ -177,7 +65,7 @@ const getColumns = ({ statusFeedback }) => [
     header: "Origem/Destino",
     cell: ({ row }) => (
       <div className="capitalize">{
-        `${JSON.parse(localStorage.getItem("solicitacoes-admin"))[row.index].origem}/${JSON.parse(localStorage.getItem("solicitacoes-admin"))[row.index].destino}`}</div>
+        `${localStorageUtils.getItem("solicitacoes-admin")[row.index].origem}/${localStorageUtils.getItem("solicitacoes-admin")[row.index].destino}`}</div>
     ),
   },
   {
@@ -231,7 +119,7 @@ function DataTableDemo() {
   }, [isMobile])
 
   React.useEffect(() => {
-    setTableData(JSON.parse(localStorage.getItem("solicitacoes-admin")));
+    setTableData(localStorageUtils.getItem("solicitacoes-admin"));
   }, [])
 
   const isChecked = (value) => {
@@ -251,7 +139,7 @@ function DataTableDemo() {
   };
 
   function statusFeedback(isAccepted, id) {
-    const solicitations = JSON.parse(localStorage.getItem("solicitacoes-admin"));
+    const solicitations = localStorageUtils.getItem("solicitacoes-admin");
     const solicitation = solicitations[id];
     if (isAccepted) {
       const message = `Solicitação nº ${solicitation.id} de ${solicitation.cliente} foi aceita`;
@@ -263,7 +151,7 @@ function DataTableDemo() {
       solicitation.status = "Recusado";
       toast.info(message);
     }
-    localStorage.setItem("solicitacoes-admin", JSON.stringify(solicitations));
+    localStorageUtils.setItem("solicitacoes-admin", solicitations);
     setTableData(solicitations);
   };
 
@@ -464,12 +352,12 @@ function ModalOrders({ open, data, onClose, statusFeedback }) {
               <ButtonText className="text-center">Fechar</ButtonText>
             </Button>
             <Button className="bg-red-50 text-danger-base w-50 h-10 sm:h-12" onClick={() => {
-              if (isPending) statusFeedback(false, JSON.parse(localStorage.getItem("solicitacoes-admin")).findIndex(info => info.id == data.id))
+              if (isPending) statusFeedback(false, localStorageUtils.getItem("solicitacoes-admin").findIndex(info => info.id == data.id))
             }}>
               <ButtonText className="text-center">Recusar</ButtonText>
             </Button>
             <Button className="bg-red-tx w-50 h-10 sm:h-12" onClick={() => {
-              if (isPending) statusFeedback(true, JSON.parse(localStorage.getItem("solicitacoes-admin")).findIndex(info => info.id == data.id))
+              if (isPending) statusFeedback(true, localStorageUtils.getItem("solicitacoes-admin").findIndex(info => info.id == data.id))
             }}>
               <ButtonText className="text-center text-white">Aceitar</ButtonText>
             </Button>
