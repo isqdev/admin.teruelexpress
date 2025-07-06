@@ -19,7 +19,7 @@ interface ModalProps extends ComponentProps<"div"> {
 
 const widthMap = {
   md: "max-w-xl",
-  lg: "max-w-4xl",
+  lg: "max-w-5xl",
 };
 
 export function Modal({

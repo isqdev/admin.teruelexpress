@@ -1,4 +1,4 @@
-import { Button, ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel, InputMessage, SectionApp, AppHeader, Modal, Shape, ModalConfirm } from "@/components";
+import { Button, ButtonText, InputLabel, SectionApp, AppHeader, Modal, Shape } from "@/components";
 import * as React from "react";
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
 import { ChevronDown } from "lucide-react";
@@ -9,10 +9,9 @@ import { Button as ButtonShad } from "@/components/ui/button"
 import { ArrowLeft, ArrowRight, Check, File, Package, ToteSimple, X } from "phosphor-react";
 import { toast, Toaster } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile"
-import { format } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover"
+import { dateString } from "@/utils/dateHandler";
 
 export function Orders() {
   // getInfo() ?? setInfo(); Vai ter que ter algo assim nos services
@@ -98,7 +97,7 @@ const data = [
   },
   {
     id: 14,
-    data: "10/12/2025",
+    data: "13/12/2025",
     cliente: "Fipal",
     origem: "Paranavaí",
     destino: "Nova Esperança",
@@ -148,6 +147,7 @@ const getColumns = ({ statusFeedback }) => [
   {
     accessorKey: "data",
     header: "Data",
+    filterFn: "arrIncludesSome",
     sortingFn: (rowA, rowB, columnId) => {
       function parseDate(dateString) {
         const parts = dateString.split("/");
@@ -178,8 +178,6 @@ const getColumns = ({ statusFeedback }) => [
     cell: ({ row }) => (
       <div className="capitalize">{
         `${JSON.parse(localStorage.getItem("solicitacoes-admin"))[row.index].origem}/${JSON.parse(localStorage.getItem("solicitacoes-admin"))[row.index].destino}`}</div>
-      //   <div className="capitalize">{row.getValue("origem")}</div>
-      // (<div className="capitalize">{getOriginDestiny(row.index)}</div>),
     ),
   },
   {
@@ -239,7 +237,7 @@ function DataTableDemo() {
   const isChecked = (value) => {
     if (table.getColumn("status").getFilterValue() == null) return false;
     else return table.getColumn("status").getFilterValue().includes(value);
-  }
+  };
 
   function filterStatus(value) {
     const statusTable = table.getColumn("status");
@@ -250,7 +248,7 @@ function DataTableDemo() {
       else
         statusTable.setFilterValue(prev => [...prev, value]);
     } else statusTable.setFilterValue([value]);
-  }
+  };
 
   function statusFeedback(isAccepted, id) {
     const solicitations = JSON.parse(localStorage.getItem("solicitacoes-admin"));
@@ -267,7 +265,7 @@ function DataTableDemo() {
     }
     localStorage.setItem("solicitacoes-admin", JSON.stringify(solicitations));
     setTableData(solicitations);
-  }
+  };
 
   const columns = getColumns({
     statusFeedback: statusFeedback,
@@ -334,7 +332,7 @@ function DataTableDemo() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <DatePickerDemo></DatePickerDemo>
+        <DatePickerDemo filterDate={table.getColumn("data").setFilterValue}></DatePickerDemo>
 
       </div>
       <div className="rounded-md border">
@@ -419,10 +417,10 @@ function ModalOrders({ open, data, onClose, statusFeedback }) {
   const isPending = data.status == "Pendente";
 
   return (
-    <Modal open={open} data={data} onClose={onClose} className="max-w-241">
+    <Modal open={open} data={data} onClose={onClose}>
       <div className="flex gap-5">
         <Shape className="border-gray-600 border-1 flex flex-col sm:pt-2 sm:pb-5 sm:px-4">
-          <InputLabel>Solicitação</InputLabel>
+          <span className="text-lg font-bold">Solicitação</span>
 
           <div className="flex flex-row gap-15">
             <div className=" flex flex-col">
@@ -456,14 +454,14 @@ function ModalOrders({ open, data, onClose, statusFeedback }) {
           <InputLabel className="sm:text-xs mt-3">Número</InputLabel> {1 === 1 ? <InputLabel className="font-normal">7</InputLabel> : data.cliente}
         </Shape> */}
         <AdressList adress={addresses[0]} title="Endereço de Origem" />
-        <AdressList adress={addresses[1]} title="Endereço de Destino"/>
+        <AdressList adress={addresses[1]} title="Endereço de Destino" />
 
       </div>
       {(
         isPending ? (
           <div className="flex mt-5 justify-self-end gap-2">
             <Button className="w-50 h-10 sm:h-12" onClick={onClose}>
-              <ButtonText className="text-center">Fechar modal</ButtonText>
+              <ButtonText className="text-center">Fechar</ButtonText>
             </Button>
             <Button className="bg-red-50 text-danger-base w-50 h-10 sm:h-12" onClick={() => {
               if (isPending) statusFeedback(false, JSON.parse(localStorage.getItem("solicitacoes-admin")).findIndex(info => info.id == data.id))
@@ -479,7 +477,7 @@ function ModalOrders({ open, data, onClose, statusFeedback }) {
         )
           : (
             <Button className="mt-5" onClick={onClose}>
-              <ButtonText className="text-center">Fechar modal</ButtonText>
+              <ButtonText className="text-center">Fechar</ButtonText>
             </Button>
           )
       )}
@@ -487,7 +485,7 @@ function ModalOrders({ open, data, onClose, statusFeedback }) {
   )
 }
 
-export function DatePickerDemo() {
+export function DatePickerDemo({ filterDate }) {
   const [date, setDate] = React.useState([]);
 
   return (
@@ -496,7 +494,7 @@ export function DatePickerDemo() {
         <Button
           variant=""
           data-empty={!date.length}
-          className=" hover:cursor-pointer hover:scale-none hover:opacity-90 data-[empty=true]:text-muted-foreground w-60 text-left inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium disabled:pointer-events-none focus-visible:ring-ring/50 border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground sm:h-9 py-2 has-[>svg]:px-3"
+          className=" hover:cursor-pointer data-[empty=true]:text-muted-foreground w-60 text-left inline-flex items-center justify-center gap-2 rounded-md font-medium disabled:pointer-events-none border bg-background hover:bg-accent hover:text-accent-foreground sm:h-9 py-2 has-[>svg]:px-3"
         >
           <CalendarIcon />
           <ButtonText className="sm:text-base font-normal">Escolha uma data</ButtonText>
@@ -505,7 +503,11 @@ export function DatePickerDemo() {
       </PopoverTrigger>
       <PopoverContent className="z-3">
         <Calendar mode="multiple" selected={date} onSelect={setDate} className="rounded-2xl border border-gray-00" />
-        <ButtonShad className={`float-end mt-1 hover:default:none ${!date.length ? "" : "hover:cursor-pointer"}`}>Filtrar</ButtonShad>
+        <ButtonShad
+          className={`float-end mt-1 bg-red-tx hover:cursor-pointer hover:bg-red-tx hover:text-white hover:shadow-none`}
+          onClick={() => {filterDate(dateString(date))}}>
+          Filtrar
+        </ButtonShad>
       </PopoverContent>
     </Popover>
   )
@@ -538,17 +540,16 @@ function PackageList({ packages }) {
 
 function AdressList({ adress, title }) {
   const labels = ["CEP", "Estado", "Cidade", "Bairro", "Rua", "Número"];
-  console.log(labels.length);
 
   const mocks = ["87808-500", "Paraná", "Paranavaí", "Fenda do Biquini", "Rua 10", "7"];
 
   return (
-    <Shape className="border-gray-600 border-1 sm:pt-2 sm:pb-5 sm:pl-4 max-w-60">
-      <InputLabel>{title}</InputLabel>
+    <Shape className="border-gray-600 border-1 sm:pt-2 sm:pb-5 sm:pl-4 max-w-70">
+      <span className="text-lg font-bold">{title}</span>
       {labels.map((label, index) => (
         <div className="flex flex-col mt-3" key={index}>
-          <InputLabel className="sm:text-xs">{label}</InputLabel>
-          <InputLabel className="font-normal">{1 == 1 ? mocks[index] : adress.cliente}</InputLabel>
+          <span className="sm:text-xs font-bold">{label}</span>
+          <span>{1 == 1 ? mocks[index] : adress.cliente}</span>
         </div>
       ))}
     </Shape>
