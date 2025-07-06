@@ -13,7 +13,7 @@ import { Calendar as CalendarIcon } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover"
 import { dateString, parseDate } from "@/utils/dateHandler";
 import { localStorageUtils } from "@/utils/localStorageUtils";
-import { data, addresses} from "@/services/orders";
+import { data, addresses } from "@/services/orders";
 
 export function Orders() {
   React.useEffect(() => {
@@ -309,41 +309,27 @@ function ModalOrders({ open, data, onClose, statusFeedback }) {
       <div className="flex gap-5">
         <Shape className="border-gray-600 border-1 flex flex-col sm:pt-2 sm:pb-5 sm:px-4">
           <span className="text-lg font-bold">Solicitação</span>
-
           <div className="flex flex-row gap-15">
             <div className=" flex flex-col">
-              <InputLabel className="sm:text-xs mt-3">Cliente</InputLabel>
-              {1 === 1 ? <InputLabel className="font-normal">Gerdau</InputLabel> : data.cliente}
+              <span className="sm:text-xs font-bold mt-1">Cliente</span>
+              <span>{data.cliente}</span>
             </div>
             <div className="flex flex-col">
-              <InputLabel className="sm:text-xs mt-3">Data</InputLabel>
-              {1 === 1 ? <InputLabel className="font-normal">10/08/2025</InputLabel> : data.data}
+              <span className="sm:text-xs font-bold mt-1">Data</span>
+              <span>{data.data}</span>
             </div>
             <div className="flex flex-col">
-              <InputLabel className="sm:text-xs mt-3">Status</InputLabel>
-              {1 === 1 ? <InputLabel className="font-normal">Pendente</InputLabel> : data.status}
+              <span className="sm:text-xs font-bold mt-1">Status</span>
+              <span>{data.status}</span>
             </div>
           </div>
-
-          <InputLabel className="sm:text-xs my-1">Carga</InputLabel>
+          <span className="sm:text-xs font-bold my-1">Carga</span>
           <Shape className="bg-gray-50 sm:pl-3 sm:pt-3 h-full">
             <PackageList packages={data.pacotes} />
           </Shape>
-
         </Shape>
-
-        {/* <Shape className="border-gray-600 border-1 flex flex-col sm:pt-2 sm:pb-5 sm:pl-4">
-          <InputLabel>Endereço de Origem</InputLabel>
-          <InputLabel className="sm:text-xs mt-3">CEP</InputLabel> {1 === 1 ? <InputLabel className="font-normal">87808-500</InputLabel> : data.cliente}
-          <InputLabel className="sm:text-xs mt-3">Estado</InputLabel> {1 === 1 ? <InputLabel className="font-normal">Paraná</InputLabel> : data.cliente}
-          <InputLabel className="sm:text-xs mt-4">Cidade</InputLabel> {1 === 1 ? <InputLabel className="font-normal">Paranavaí</InputLabel> : data.cliente}
-          <InputLabel className="sm:text-xs mt-4">Bairro</InputLabel> {1 === 1 ? <InputLabel className="font-normal">Fenda do Biquini</InputLabel> : data.cliente}
-          <InputLabel className="sm:text-xs mt-3">Rua</InputLabel> {1 === 1 ? <InputLabel className="font-normal">Rua 10</InputLabel> : data.cliente}
-          <InputLabel className="sm:text-xs mt-3">Número</InputLabel> {1 === 1 ? <InputLabel className="font-normal">7</InputLabel> : data.cliente}
-        </Shape> */}
         <AdressList adress={addresses[0]} title="Endereço de Origem" />
         <AdressList adress={addresses[1]} title="Endereço de Destino" />
-
       </div>
       {(
         isPending ? (
@@ -393,7 +379,7 @@ export function DatePickerDemo({ filterDate }) {
         <Calendar mode="multiple" selected={date} onSelect={setDate} className="rounded-2xl border border-gray-00" />
         <ButtonShad
           className={`float-end mt-1 bg-red-tx hover:cursor-pointer hover:bg-red-tx hover:text-white hover:shadow-none`}
-          onClick={() => {filterDate(dateString(date))}}>
+          onClick={() => { filterDate(dateString(date)) }}>
           Filtrar
         </ButtonShad>
       </PopoverContent>
@@ -402,13 +388,17 @@ export function DatePickerDemo({ filterDate }) {
 }
 
 function PackageList({ packages }) {
+  const mocks = [
+  {loadType: "caixa", width: 20, height : 20, length: 20, weight: 2},
+  {loadType: "sacola", weight: 3, amount: 2},
+  {loadType: "envelope", amount: 5}, 
+  ];
+
+  const info = packages.length === 0 ? mocks : packages;
 
   return (
     <div className="flex flex-col gap-2">
-      {packages.length === 0 ? (
-        <p className="text-gray-600 text-center">Nenhum pacote adicionado</p>
-      ) : (
-        packages.map((pkg, index) => (
+        {info.map((pkg, index) => (
           <div key={index} className="flex gap-y-3 justify-between">
             <div className="flex gap-x-3 items-center">
               {pkg.loadType === "caixa" && <Package className="icon" />}
@@ -420,8 +410,7 @@ function PackageList({ packages }) {
               <span>Qtd:{pkg.amount || 1}</span>
             </div>
           </div>
-        ))
-      )}
+        ))}
     </div>
   );
 }
@@ -437,7 +426,7 @@ function AdressList({ adress, title }) {
       {labels.map((label, index) => (
         <div className="flex flex-col mt-3" key={index}>
           <span className="sm:text-xs font-bold">{label}</span>
-          <span>{1 == 1 ? mocks[index] : adress.cliente}</span>
+          <span>{adress.length ?? mocks[index]}</span>
         </div>
       ))}
     </Shape>
