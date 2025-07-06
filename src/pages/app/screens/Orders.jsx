@@ -1,4 +1,4 @@
-import { Button, ButtonText, InputLabel, SectionApp, AppHeader, Modal, Shape } from "@/components";
+import { Button, ButtonText, InputLabel, SectionApp, AppHeader, Modal, Shape, ModalConfirm } from "@/components";
 import * as React from "react";
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
 import { ChevronDown } from "lucide-react";
@@ -32,7 +32,7 @@ export function Orders() {
   );
 }
 
-const getColumns = ({ statusFeedback }) => [
+const getColumns = ({ setRowId, setIsAcceptModalOpen, setIsDeleteModalOpen }) => [
   {
     accessorKey: "id",
     header: "ID",
@@ -83,15 +83,21 @@ const getColumns = ({ statusFeedback }) => [
     cell: ({ row }) => {
       return (
         <div className="flex gap-x-3 justify-center">
-          <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'Pendente' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={() => {
-            if (row.getValue("status") == "Pendente")
-              statusFeedback(true, row.id)
+          <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'Pendente' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={event => {
+            event.stopPropagation();
+            if (row.getValue("status") == "Pendente") {
+              setRowId(row.id);
+              setIsAcceptModalOpen(true); 
+            }
           }}>
             <Check />
           </ButtonShad>
-          <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'Pendente' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={() => {
-            if (row.getValue("status") == "Pendente")
-              statusFeedback(false, row.id)
+          <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'Pendente' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={event => {
+            event.stopPropagation();
+            if (row.getValue("status") == "Pendente") {
+              setRowId(row.id);
+              setIsDeleteModalOpen(true);
+            }
           }}>
             <X />
           </ButtonShad>
@@ -107,7 +113,10 @@ function DataTableDemo() {
   const [columnVisibility, setColumnVisibility] = React.useState({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [selectedRow, setSelectedRow] = React.useState(null);
+  const [rowId, setRowId] = React.useState(0);
   const [tableData, setTableData] = React.useState([]);
+  const [isAcceptModalOpen, setIsAcceptModalOpen] = React.useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const isMobile = useIsMobile();
 
   React.useEffect(() => {
@@ -151,12 +160,15 @@ function DataTableDemo() {
       solicitation.status = "Recusado";
       toast.info(message);
     }
+    setRowId(null);
     localStorageUtils.setItem("solicitacoes-admin", solicitations);
     setTableData(solicitations);
   };
 
   const columns = getColumns({
-    statusFeedback: statusFeedback,
+    setRowId: setRowId,
+    setIsAcceptModalOpen: setIsAcceptModalOpen,
+    setIsDeleteModalOpen: setIsDeleteModalOpen,
   })
 
   const table = useReactTable({
@@ -294,13 +306,37 @@ function DataTableDemo() {
         open={!!selectedRow}
         data={selectedRow}
         onClose={() => setSelectedRow(null)}
-        statusFeedback={statusFeedback}
+        setRowId={setRowId}
+        rowId={rowId}
+        setIsDeleteModalOpen={setIsDeleteModalOpen}
+        setIsAcceptModalOpen={setIsAcceptModalOpen}
+      />
+      <ModalConfirm
+        message="Deseja aceitar a solicitação?"
+        open={isAcceptModalOpen}
+        options={["Não", "Sim"]}
+        good
+        action={() => {
+          statusFeedback(true, rowId);
+          setSelectedRow(null);
+        }}
+        onClose={() => setIsAcceptModalOpen(false)}
+      />
+      <ModalConfirm
+        message="Deseja recusar a solicitação?"
+        open={isDeleteModalOpen}
+        options={["Não", "Sim"]}
+        action={() => {
+          statusFeedback(false, rowId);
+          setSelectedRow(null); 
+        }}
+        onClose={() => setIsDeleteModalOpen(false)}
       />
     </div>
   );
 }
 
-function ModalOrders({ open, data, onClose, statusFeedback }) {
+function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setIsDeleteModalOpen }) {
   if (!open) return null;
   const isPending = data.status == "Pendente";
 
@@ -338,12 +374,18 @@ function ModalOrders({ open, data, onClose, statusFeedback }) {
               <ButtonText className="text-center">Fechar</ButtonText>
             </Button>
             <Button className="bg-red-50 text-danger-base w-50 h-10 sm:h-12" onClick={() => {
-              if (isPending) statusFeedback(false, localStorageUtils.getItem("solicitacoes-admin").findIndex(info => info.id == data.id))
+              if(isPending) {
+                setRowId(localStorageUtils.getItem("solicitacoes-admin").findIndex(info => info.id == data.id));
+                setIsDeleteModalOpen(true);
+              }
             }}>
               <ButtonText className="text-center">Recusar</ButtonText>
             </Button>
             <Button className="bg-red-tx w-50 h-10 sm:h-12" onClick={() => {
-              if (isPending) statusFeedback(true, localStorageUtils.getItem("solicitacoes-admin").findIndex(info => info.id == data.id))
+              if(isPending) {
+                setRowId(localStorageUtils.getItem("solicitacoes-admin").findIndex(info => info.id == data.id));
+                setIsAcceptModalOpen(true);
+              }
             }}>
               <ButtonText className="text-center text-white">Aceitar</ButtonText>
             </Button>
@@ -389,28 +431,28 @@ export function DatePickerDemo({ filterDate }) {
 
 function PackageList({ packages }) {
   const mocks = [
-  {loadType: "caixa", width: 20, height : 20, length: 20, weight: 2},
-  {loadType: "sacola", weight: 3, amount: 2},
-  {loadType: "envelope", amount: 5}, 
+    { loadType: "caixa", width: 20, height: 20, length: 20, weight: 2 },
+    { loadType: "sacola", weight: 3, amount: 2 },
+    { loadType: "envelope", amount: 5 },
   ];
 
   const info = packages.length === 0 ? mocks : packages;
 
   return (
     <div className="flex flex-col gap-2">
-        {info.map((pkg, index) => (
-          <div key={index} className="flex gap-y-3 justify-between">
-            <div className="flex gap-x-3 items-center">
-              {pkg.loadType === "caixa" && <Package className="icon" />}
-              {pkg.loadType === "envelope" && <File className="icon" />}
-              {pkg.loadType === "sacola" && <ToteSimple className="icon" />}
-              <span className="capitalize">{pkg.loadType}</span>
-              <span>{`${pkg.width || 0}x${pkg.height || 0}x${pkg.length || 0}cm`}</span>
-              <span>{`${pkg.weight || 0}kg`}</span>
-              <span>Qtd:{pkg.amount || 1}</span>
-            </div>
+      {info.map((pkg, index) => (
+        <div key={index} className="flex gap-y-3 justify-between">
+          <div className="flex gap-x-3 items-center">
+            {pkg.loadType === "caixa" && <Package className="icon" />}
+            {pkg.loadType === "envelope" && <File className="icon" />}
+            {pkg.loadType === "sacola" && <ToteSimple className="icon" />}
+            <span className="capitalize">{pkg.loadType}</span>
+            <span>{`${pkg.width || 0}x${pkg.height || 0}x${pkg.length || 0}cm`}</span>
+            <span>{`${pkg.weight || 0}kg`}</span>
+            <span>Qtd:{pkg.amount || 1}</span>
           </div>
-        ))}
+        </div>
+      ))}
     </div>
   );
 }
