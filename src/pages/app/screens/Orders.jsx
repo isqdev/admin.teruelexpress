@@ -341,12 +341,12 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
   const isPending = data.status == "Pendente";
 
   return (
-    <Modal open={open} data={data} onClose={onClose}>
-      <div className="flex gap-5">
-        <Shape className="border-gray-600 border-1 flex flex-col sm:pt-2 sm:pb-5 sm:px-4">
+    <Modal open={open} data={data} onClose={onClose} className="overflow-y-auto">
+      <div className="lg:flex lg:gap-5 lg:flex-row flex flex-col justify-items-center gap-y-3 md:grid-rows-2 md:grid-cols-2 md:grid">
+        <Shape className="border-gray-600 border-1 flex flex-col sm:pt-2 sm:pb-5 sm:px-4 md:col-span-2">
           <span className="text-lg font-bold">Solicitação</span>
-          <div className="flex flex-row gap-15">
-            <div className=" flex flex-col">
+          <div className="md:flex md:flex-row md:gap-15 gap-x-6 grid grid-cols-2">
+            <div className="flex flex-col">
               <span className="sm:text-xs font-bold mt-1">Cliente</span>
               <span>{data.cliente}</span>
             </div>
@@ -369,11 +369,11 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
       </div>
       {(
         isPending ? (
-          <div className="flex mt-5 justify-self-end gap-2">
-            <Button className="w-50 h-10 sm:h-12" onClick={onClose}>
+          <div className="lg:flex lg:flex-row mt-5 lg:justify-self-end lg:gap-2 flex flex-col gap-y-2">
+            <Button className="lg:w-50 h-10 sm:h-12 sm:mt-2" onClick={onClose}>
               <ButtonText className="text-center">Fechar</ButtonText>
             </Button>
-            <Button className="bg-red-50 text-danger-base w-50 h-10 sm:h-12" onClick={() => {
+            <Button className="bg-red-50 text-danger-base lg:w-50 h-10 sm:h-12 sm:mt-2" onClick={() => {
               if(isPending) {
                 setRowId(localStorageUtils.getItem("solicitacoes-admin").findIndex(info => info.id == data.id));
                 setIsDeleteModalOpen(true);
@@ -381,7 +381,7 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
             }}>
               <ButtonText className="text-center">Recusar</ButtonText>
             </Button>
-            <Button className="bg-red-tx w-50 h-10 sm:h-12" onClick={() => {
+            <Button className="bg-red-tx lg:w-50 h-10 sm:h-12 sm:mt-2" onClick={() => {
               if(isPending) {
                 setRowId(localStorageUtils.getItem("solicitacoes-admin").findIndex(info => info.id == data.id));
                 setIsAcceptModalOpen(true);
@@ -438,23 +438,27 @@ function PackageList({ packages }) {
 
   const info = packages.length === 0 ? mocks : packages;
 
-  return (
-    <div className="flex flex-col gap-2">
-      {info.map((pkg, index) => (
-        <div key={index} className="flex gap-y-3 justify-between">
-          <div className="flex gap-x-3 items-center">
-            {pkg.loadType === "caixa" && <Package className="icon" />}
-            {pkg.loadType === "envelope" && <File className="icon" />}
-            {pkg.loadType === "sacola" && <ToteSimple className="icon" />}
-            <span className="capitalize">{pkg.loadType}</span>
-            <span>{`${pkg.width || 0}x${pkg.height || 0}x${pkg.length || 0}cm`}</span>
-            <span>{`${pkg.weight || 0}kg`}</span>
-            <span>Qtd:{pkg.amount || 1}</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+return (
+  <div className="flex flex-col gap-2">
+    {info.map((pkg, index) => (
+      <div
+        key={index}
+        className="grid grid-cols-2 gap-x-2 gap-y-1 md:flex md:flex-row md:items-center md:gap-x-4"
+      >
+      
+        <span className="flex items-center gap-x-2">
+          {pkg.loadType === "caixa" && <Package size={25} className="self-center" />}
+          {pkg.loadType === "envelope" && <File size={25} className="self-center" />}
+          {pkg.loadType === "sacola" && <ToteSimple size={25} className="self-center" />}
+          <span className="capitalize">{pkg.loadType}</span>
+        </span>
+        <span>{`${pkg.width || 0}x${pkg.height || 0}x${pkg.length || 0}cm`}</span>
+        <span className="pl-9 md:p-0">{`${pkg.weight || 0}kg`}</span>
+        <span>Qtd:{pkg.amount || 1}</span>
+      </div>
+    ))}
+  </div>
+);
 }
 
 function AdressList({ adress, title }) {
@@ -463,7 +467,7 @@ function AdressList({ adress, title }) {
   const mocks = ["87808-500", "Paraná", "Paranavaí", "Fenda do Biquini", "Rua 10", "7"];
 
   return (
-    <Shape className="border-gray-600 border-1 sm:pt-2 sm:pb-5 sm:pl-4 max-w-70">
+    <Shape className="border-gray-600 border-1 sm:pt-2 sm:pb-5 sm:pl-4 lg:max-w-70 lg:mt-0">
       <span className="text-lg font-bold">{title}</span>
       {labels.map((label, index) => (
         <div className="flex flex-col mt-3" key={index}>
