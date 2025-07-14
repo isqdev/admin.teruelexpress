@@ -341,11 +341,11 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
   const isPending = data.status == "Pendente";
 
   return (
-    <Modal open={open} data={data} onClose={onClose} className="overflow-y-auto">
-      <div className="lg:flex lg:gap-5 lg:flex-row flex flex-col justify-items-center gap-y-3 md:grid-rows-2 md:grid-cols-2 md:grid">
-        <Shape className="border-gray-600 border-1 flex flex-col sm:pt-2 sm:pb-5 sm:px-4 md:col-span-2">
+    <Modal open={open} data={data} onClose={onClose} className="md:w-auto lg:w-5xl overflow-y-scroll md:max-h-[80vh]">
+      <div className="lg:flex lg:gap-5 lg:flex-row flex flex-col justify-items-center gap-y-3 md:grid-cols-2 md:grid md:gap-x-9">
+        <Shape className="border-gray-600 border-1 flex flex-col sm:pt-2 sm:pb-5 sm:px-4 md:col-span-2 md:max-w-2xl">
           <span className="text-lg font-bold">Solicitação</span>
-          <div className="md:flex md:flex-row md:gap-15 gap-x-6 grid grid-cols-2">
+          <div className="md:flex md:flex-row md:gap-40 gap-x-6 grid grid-cols-2">
             <div className="flex flex-col">
               <span className="sm:text-xs font-bold mt-1">Cliente</span>
               <span>{data.cliente}</span>
@@ -360,7 +360,7 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
             </div>
           </div>
           <span className="sm:text-xs font-bold my-1">Carga</span>
-          <Shape className="bg-gray-50 sm:pl-3 sm:pt-3 h-full">
+          <Shape className="bg-gray-50 sm:pl-3 sm:pt-3 md:h-full">
             <PackageList packages={data.pacotes} />
           </Shape>
         </Shape>
@@ -467,7 +467,7 @@ function AdressList({ adress, title }) {
   const mocks = ["87808-500", "Paraná", "Paranavaí", "Fenda do Biquini", "Rua 10", "7"];
 
   return (
-    <Shape className="border-gray-600 border-1 sm:pt-2 sm:pb-5 sm:pl-4 lg:max-w-70 lg:mt-0">
+    <Shape className="border-gray-600 border-1 sm:pt-2 sm:pb-5 sm:pl-4 lg:max-w-70 lg:mt-0 md:max-w-90">
       <span className="text-lg font-bold">{title}</span>
       {labels.map((label, index) => (
         <div className="flex flex-col mt-3" key={index}>
