@@ -8,12 +8,13 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button as ButtonShad } from "@/components/ui/button"
 import { ArrowLeft, ArrowRight, Check, File, Package, ToteSimple, X } from "phosphor-react";
 import { toast, Toaster } from "sonner";
-import { useIsMobile } from "@/hooks/use-mobile"
+import { useIsMobile, useIsSmallMobile } from "@/hooks/use-mobile"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover"
 import { dateString, parseDate } from "@/utils/dateHandler";
 import { localStorageUtils } from "@/utils/localStorageUtils";
 import { data, addresses } from "@/services/orders";
+import styles from "./Orders.module.css";
 
 export function Orders() {
   React.useEffect(() => {
@@ -118,14 +119,16 @@ function DataTableDemo() {
   const [isAcceptModalOpen, setIsAcceptModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const isMobile = useIsMobile();
+  const isSmallMobile = useIsSmallMobile();
 
   React.useEffect(() => {
     setColumnVisibility({
       id: !isMobile,
       origem: !isMobile,
       aceitar: !isMobile,
+      status: !isSmallMobile
     })
-  }, [isMobile])
+  }, [isMobile, isSmallMobile])
 
   React.useEffect(() => {
     setTableData(localStorageUtils.getItem("solicitacoes-admin"));
@@ -283,23 +286,28 @@ function DataTableDemo() {
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="space-x-2">
-          <ButtonShad
-            variant="outline"
-            size="sm"
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
+            className="disabled:opacity-50 aspect-square w-auto flex items-center justify-center"
           >
-            <ArrowLeft className="icon" />
-          </ButtonShad>
-          <ButtonShad
-            variant="outline"
-            size="sm"
+            <ArrowLeft size={20} className="disabled:opacity-50" />
+          </Button>
+
+          <span className="text-sm text-gray-600 mx-2">
+            {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+          </span>
+
+          <Button
+            variant="secondary"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
+            className="disabled:opacity-50 aspect-square w-auto flex items-center justify-center"
           >
-            <ArrowRight className="icon" />
-          </ButtonShad>
+            <ArrowRight size={20} className="disabled:opacity-50" />
+          </Button>
         </div>
       </div>
       <ModalOrders
@@ -337,15 +345,36 @@ function DataTableDemo() {
 }
 
 function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setIsDeleteModalOpen }) {
+  React.useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [open]);
+
   if (!open) return null;
   const isPending = data.status == "Pendente";
 
+  const statusColorMap = {
+    "Aceito": "bg-success-light/30",
+    "Recusado": "bg-danger-light/30", 
+    "Pendente": "bg-star/30"
+  }
+
   return (
-    <Modal open={open} data={data} onClose={onClose} className="md:w-auto lg:w-5xl overflow-y-scroll md:max-h-[80vh]">
-      <div className="lg:flex lg:gap-5 lg:flex-row flex flex-col justify-items-center gap-y-3 md:grid-cols-2 md:grid md:gap-x-9">
-        <Shape className="border-gray-600 border-1 flex flex-col sm:pt-2 sm:pb-5 sm:px-4 md:col-span-2 md:max-w-2xl">
-          <span className="text-lg font-bold">Solicitação</span>
-          <div className="md:flex md:flex-row md:gap-40 gap-x-6 grid grid-cols-2">
+    <Modal open={open} data={data} onClose={onClose} className="md:w-auto lg:w-5xl overflow-y-auto scrollbar-hidden md:max-h-[95vh]">
+      <div className="lg:flex lg:gap-5 lg:flex-row flex flex-col justify-items-center gap-y-4 sm:grid-cols-2 sm:grid sm:gap-x-4">
+        <Shape className="border-gray-600 border-1 flex flex-col sm:pt-2 sm:pb-5 sm:px-4 sm:col-span-2 md:max-w-2xl">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-lg font-bold">Solicitação</span>
+            <span className={`text-sm font-bold px-2 py-1 rounded-lg ${statusColorMap[data.status]}`}>{data.status}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
             <div className="flex flex-col">
               <span className="sm:text-xs font-bold mt-1">Cliente</span>
               <span>{data.cliente}</span>
@@ -353,10 +382,6 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
             <div className="flex flex-col">
               <span className="sm:text-xs font-bold mt-1">Data</span>
               <span>{data.data}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="sm:text-xs font-bold mt-1">Status</span>
-              <span>{data.status}</span>
             </div>
           </div>
           <span className="sm:text-xs font-bold my-1">Carga</span>
@@ -369,11 +394,11 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
       </div>
       {(
         isPending ? (
-          <div className="lg:flex lg:flex-row mt-5 lg:justify-self-end lg:gap-2 flex flex-col gap-y-2">
-            <Button className="lg:w-50 h-10 sm:h-12 sm:mt-2" onClick={onClose}>
+          <div className="sm:flex sm:flex-row mt-5 lg:justify-self-end sm:gap-3 flex flex-col gap-y-2">
+            <Button className="lg:w-50 sm:mt-2" onClick={onClose}>
               <ButtonText className="text-center">Fechar</ButtonText>
             </Button>
-            <Button className="bg-red-50 text-danger-base lg:w-50 h-10 sm:h-12 sm:mt-2" onClick={() => {
+            <Button className="bg-red-50 text-danger-base lg:w-50 sm:mt-2" onClick={() => {
               if(isPending) {
                 setRowId(localStorageUtils.getItem("solicitacoes-admin").findIndex(info => info.id == data.id));
                 setIsDeleteModalOpen(true);
@@ -381,7 +406,7 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
             }}>
               <ButtonText className="text-center">Recusar</ButtonText>
             </Button>
-            <Button className="bg-red-tx lg:w-50 h-10 sm:h-12 sm:mt-2" onClick={() => {
+            <Button className="bg-red-tx lg:w-50 sm:mt-2" onClick={() => {
               if(isPending) {
                 setRowId(localStorageUtils.getItem("solicitacoes-admin").findIndex(info => info.id == data.id));
                 setIsAcceptModalOpen(true);
@@ -392,7 +417,7 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
           </div>
         )
           : (
-            <Button className="mt-5" onClick={onClose}>
+            <Button className="mt-5 lg:w-50 justify-self-end" onClick={onClose}>
               <ButtonText className="text-center">Fechar</ButtonText>
             </Button>
           )
@@ -403,17 +428,18 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
 
 export function DatePickerDemo({ filterDate }) {
   const [date, setDate] = React.useState([]);
+  const [open, setOpen] = React.useState(false);
 
   return (
-    <Popover >
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant=""
           data-empty={!date.length}
-          className=" hover:cursor-pointer data-[empty=true]:text-muted-foreground w-60 text-left inline-flex items-center justify-center gap-2 rounded-md font-medium disabled:pointer-events-none border bg-background hover:bg-accent hover:text-accent-foreground sm:h-9 py-2 has-[>svg]:px-3"
+          className=" hover:cursor-pointer data-[empty=true]:text-muted-foreground w-auto h-auto text-left inline-flex items-center justify-center gap-2 rounded-md font-medium disabled:pointer-events-none border bg-background hover:bg-accent hover:text-accent-foreground sm:h-9 py-2 has-[>svg]:px-3"
         >
-          <CalendarIcon />
-          <ButtonText className="sm:text-base font-normal">Escolha uma data</ButtonText>
+          <CalendarIcon size="20"/>
+          Escolher data
           <ChevronDown />
         </Button>
       </PopoverTrigger>
@@ -421,7 +447,10 @@ export function DatePickerDemo({ filterDate }) {
         <Calendar mode="multiple" selected={date} onSelect={setDate} className="rounded-2xl border border-gray-00" />
         <ButtonShad
           className={`float-end mt-1 bg-red-tx hover:cursor-pointer hover:bg-red-tx hover:text-white hover:shadow-none`}
-          onClick={() => { filterDate(dateString(date)) }}>
+          onClick={() => { 
+            filterDate(dateString(date));
+            setOpen(false);
+          }}>
           Filtrar
         </ButtonShad>
       </PopoverContent>
@@ -443,18 +472,24 @@ return (
     {info.map((pkg, index) => (
       <div
         key={index}
-        className="grid grid-cols-2 gap-x-2 gap-y-1 md:flex md:flex-row md:items-center md:gap-x-4"
+        className="flex gap-x-2 gap-y-1 md:flex md:flex-row md:items-center md:gap-x-4 pb-1 border-b border-gray-100"
       >
       
-        <span className="flex items-center gap-x-2">
+        <span className="flex items-center">
           {pkg.loadType === "caixa" && <Package size={25} className="self-center" />}
           {pkg.loadType === "envelope" && <File size={25} className="self-center" />}
           {pkg.loadType === "sacola" && <ToteSimple size={25} className="self-center" />}
-          <span className="capitalize">{pkg.loadType}</span>
         </span>
-        <span>{`${pkg.width || 0}x${pkg.height || 0}x${pkg.length || 0}cm`}</span>
-        <span className="pl-9 md:p-0">{`${pkg.weight || 0}kg`}</span>
-        <span>Qtd:{pkg.amount || 1}</span>
+        <div className={`gap-x-2 text-base ${styles.packInfo}`}>
+          <div className="flex gap-x-2">
+            <span className="capitalize">{pkg.loadType}</span>
+            <span>{`${pkg.width || 0}x${pkg.height || 0}x${pkg.length || 0}cm`}</span>
+          </div>
+          <div className="flex gap-x-2">
+            <span >{`${pkg.weight || 0}kg`}</span>
+            <span>Qtd:{pkg.amount || 1}</span>
+          </div>
+        </div>
       </div>
     ))}
   </div>
@@ -472,7 +507,7 @@ function AdressList({ adress, title }) {
       {labels.map((label, index) => (
         <div className="flex flex-col mt-3" key={index}>
           <span className="sm:text-xs font-bold">{label}</span>
-          <span>{adress.length ?? mocks[index]}</span>
+          <span className="text-base">{adress.length ?? mocks[index]}</span>
         </div>
       ))}
     </Shape>

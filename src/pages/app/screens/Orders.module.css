@@ -1,0 +1,18 @@
+@media (max-width: 530px) {
+  .packInfo {
+    display: block;
+  }
+
+}
+
+@media (min-width: 531px) {
+  .packInfo {
+    display: flex;
+  }
+}
+
+@media (min-width: 1024px) {
+  .packInfo {
+    display: block;
+  }
+}

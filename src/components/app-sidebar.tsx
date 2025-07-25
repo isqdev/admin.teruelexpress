@@ -10,20 +10,17 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import React from "react"
 import { Link } from "react-router-dom"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 // Menu items.
 const items = [
   {
     title: "Solicitações",
     url: "/app/solicitacoes",
-    icon: Package,
-  },
-  {
-    title: "Solicitar orçamento",
-    url: "/app/orcamento",
     icon: Package,
   },
   {
@@ -40,6 +37,14 @@ const items = [
 
 export function AppSidebar() {
   const location = useLocation()
+  const { toggleSidebar } = useSidebar()
+  const isMobile = useIsMobile()
+
+  function handleSidebarToggle() {
+    if (isMobile) {
+      toggleSidebar()
+    }
+  }
 
   return (
     <Sidebar>
@@ -51,12 +56,12 @@ export function AppSidebar() {
               {items.map((item) => {
                 const isActive = location.pathname === item.url
                 return (
-                  <SidebarMenuItem key={item.title}>
+                  <SidebarMenuItem key={item.title} onClick={handleSidebarToggle}>
                     <SidebarMenuButton asChild className="h-10">
                       <Link to={item.url}>
                         <item.icon
                           className="size-10"
-                          weight={isActive ? "fill" : "regular"}
+                          weight={isActive ? "fill" : "regular"} // Change weight here
                         />
                         <span className="text-base">{item.title}</span>
                       </Link>

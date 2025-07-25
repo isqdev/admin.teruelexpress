@@ -42,7 +42,7 @@ export function SectionBox({ className, children, ...props }: SectionBoxProps) {
 export function SectionApp({ className, children, ...props }: SectionProps) {
   return (
     <section
-      className={twMerge("p-6 sm:px-0 md:px-8 lg:py-5 mx-auto max-w-350 scroll-m-30", className)}
+      className={twMerge("p-4 xs:p-6 sm:px-8 lg:py-5 mx-auto max-w-350 scroll-m-30", className)}
       {...props}
     >
       {children ? children : "--vazio--"}

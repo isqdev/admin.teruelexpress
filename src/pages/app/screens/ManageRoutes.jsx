@@ -201,36 +201,43 @@ function RoutesDataTable() {
           </TableBody>
         </Table>
       </div>
+      <div className="flex flex-col justify-center">
       <div className="flex flex-row-reverse items-center justify-between space-x-2 py-4">
-        <div className="space-x-2">
-          <ButtonShad
-            variant="outline"
-            size="sm"
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
+            className="disabled:opacity-50 aspect-square w-auto flex items-center justify-center"
           >
-            <ArrowLeft className="icon"/>
-          </ButtonShad>
-          <ButtonShad
-            variant="outline"
-            size="sm"
+            <ArrowLeft size={20} className="disabled:opacity-50"/>
+          </Button>
+          <Button
+            variant="secondary"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
+            className="disabled:opacity-50 aspect-square w-auto flex items-center justify-center "
           >
-            <ArrowRight className="icon"/>
-          </ButtonShad>
+            <ArrowRight size={20} className="disabled:opacity-50"/>
+          </Button>
+          <div className="flex justify-end">
+            {/* <span className="text-sm text-gray-600 mx-2">
+              {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+            </span> */}
+          </div>
         </div>
-        <Button className="w-50 bg-red-tx" onClick={() => setShowModal(true)}>
-          <ButtonText className="text-center text-white">
+        <Button className="w-auto bg-red-tx" onClick={() => setShowModal(true)}>
+          <ButtonText className="text-center text-white shrink-0">
             Adicionar cidade
           </ButtonText>
         </Button>
-
+      </div>
+        
       </div>
       <ModalConfirm
         message="Você realmente deseja remover esta cidade?"
         open={!!selectedRow}
-        actionWord="Sim"
+        options={["Não", "Sim"]}
         action={() => handleCancel()}
         onClose={() => setSelectedRow(null)}
       />

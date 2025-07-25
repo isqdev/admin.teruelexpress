@@ -219,3 +219,13 @@ input::-webkit-inner-spin-button {
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
+
+
+.scrollbar-hidden {
+  scrollbar-width: none; 
+  -ms-overflow-style: none; 
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
