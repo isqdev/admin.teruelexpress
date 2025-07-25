@@ -34,15 +34,16 @@ export function Modal({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex sm:items-center sm:justify-center bg-black/30`}
+      className={`fixed inset-0 z-50 flex sm:items-center sm:justify-center bg-black/30 overflow-y-auto`}
       onClick={onClose}
     >
       <div
         className={twMerge(
-          `p-4 sm:p-6 m-5 w-full rounded-2xl bg-white ${widthMap[width]}`,
+          `p-4 sm:p-6 m-2 sm:m-5 w-full rounded-2xl bg-white ${widthMap[width]} my-auto`,
           className
         )}
         onClick={(e) => e.stopPropagation()}
+        tabIndex={-1}
         {...props}
       >
         {children || "vazio"}
@@ -112,7 +113,7 @@ export function ModalConfirm({
   }
 
   return (
-      <ModalSm open={open} onClose={onClose}>
+      <ModalSm open={open} onClose={onClose || (() => {})}>
         <div className="flex flex-col justify-between gap-4">
           <div className="flex items-center justify-around gap-4">
             {good ? <CheckCircle className="icon text-gray-600" size={32} /> : <Warning className="icon text-gray-600" size={32} /> }
