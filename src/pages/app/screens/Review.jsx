@@ -111,11 +111,11 @@ const CardsWithPaginationAndLocalStorage = () => {
 
   const getChars = () => {
     if (windowWidth < 380) { 
-      return 35; // Reduzir ainda mais devido ao layout complexo
+      return 35; 
     } else if (windowWidth < 1024) { 
-      return 70; // Reduzir devido aos botões extras
+      return 70; 
     } else {
-      return 120; // Reduzir devido ao espaço ocupado pelos botões
+      return 120; 
     }
   };
 
@@ -166,7 +166,7 @@ const CardsWithPaginationAndLocalStorage = () => {
                 </button>
                 <button onClick={(e) => {
                   e.stopPropagation();
-                  // Adicione aqui a função que você quer executar para o paper plane
+                  
                 }} className="bg-red-tx rounded-md px-1 p-0.5  ml-2">
                   <PaperPlaneTilt size={28} className="text-white"/>
                 </button>

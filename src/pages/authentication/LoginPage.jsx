@@ -62,7 +62,7 @@ export function LoginPage() {
             </div>
           </form>
           <div className="justify-items-center">
-            <p className="text-center cursor-default">Não possui uma conta Teruel Exepress?</p>
+            <p className="text-center cursor-default">Não possui uma conta Teruel Express?</p>
             <Link to="/login" className="text-red-tx font-bold">
               Crie uma agora
             </Link>
@@ -78,13 +78,11 @@ function maskCpfCnpj(value) {
   const onlyDigits = value.replace(/\D/g, '');
 
   if (onlyDigits.length <= 11) {
-    // Máscara CPF: 000.000.000-00
     return onlyDigits
       .replace(/(\d{3})(\d)/, '$1.$2')
       .replace(/(\d{3})(\d)/, '$1.$2')
       .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
   } else {
-    // Máscara CNPJ: 00.000.000/0000-00
     return onlyDigits
       .replace(/^(\d{2})(\d)/, '$1.$2')
       .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')

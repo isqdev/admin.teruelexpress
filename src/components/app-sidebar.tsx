@@ -16,7 +16,6 @@ import React from "react"
 import { Link } from "react-router-dom"
 import { useIsMobile } from "@/hooks/use-mobile"
 
-// Menu items.
 const items = [
   {
     title: "Solicitações",

@@ -90,7 +90,7 @@ export function SignUpPage() {
         </form>
 
         <div className="justify-items-center pt-6">
-          <p className="text-center cursor-default">Já possui uma conta Teruel Exepress?</p>
+          <p className="text-center cursor-default">Já possui uma conta Teruel Express?</p>
           <Link to="/login" className="text-red-tx font-bold">
             Entre aqui
           </Link>
@@ -416,7 +416,6 @@ function maskInput(value, field) {
   const onlyDigits = value.replace(/\D/g, '');
 
   if (field === "cpf") {
-    // CPF: 000.000.000-00
     const cpf = onlyDigits.slice(0, 11);
     return cpf
       .replace(/(\d{3})(\d)/, '$1.$2')
@@ -425,7 +424,6 @@ function maskInput(value, field) {
   }
 
   if (field === "cnpj") {
-    // CNPJ: 00.000.000/0000-00
     const cnpj = onlyDigits.slice(0, 14);
     return cnpj
       .replace(/^(\d{2})(\d)/, '$1.$2')
@@ -436,13 +434,11 @@ function maskInput(value, field) {
   }
 
   if (field === "phone") {
-    // Celular: (99) 9 9999-9999 (11 dígitos)
     if (onlyDigits.length > 10) {
       return onlyDigits
         .replace(/^(\d{2})(\d{1})(\d{4})(\d{4}).*/, '($1) $2 $3-$4')
         .replace(/^(\d{2})(\d{1})(\d{4})(\d{0,4})/, '($1) $2 $3-$4');
     }
-    // Fixo: (99) 9999-9999 (10 dígitos)
     return onlyDigits
       .replace(/^(\d{2})(\d{4})(\d{4}).*/, '($1) $2-$3')
       .replace(/^(\d{2})(\d{0,4})(\d{0,4})/, (match, ddd, first, last) => {

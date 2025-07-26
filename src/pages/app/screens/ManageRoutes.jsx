@@ -221,9 +221,6 @@ function RoutesDataTable() {
             <ArrowRight size={20} className="disabled:opacity-50"/>
           </Button>
           <div className="flex justify-end">
-            {/* <span className="text-sm text-gray-600 mx-2">
-              {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
-            </span> */}
           </div>
         </div>
         <Button className="w-auto bg-red-tx" onClick={() => setShowModal(true)}>
