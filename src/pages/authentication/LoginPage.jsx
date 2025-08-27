@@ -1,22 +1,20 @@
 import { Button, ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel, InputMessage, Section, Shape } from "@/components";
-import { Eye, EyeSlash } from "phosphor-react";
+import { Eye, EyeSlash, UserList, LockSimpleOpen, CheckCircle } from "phosphor-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { SectionBox } from "@/components";
+import { CloudinaryImage } from "@/components/CloudinaryImage.jsx";
+import { cpf, cnpj } from 'cpf-cnpj-validator';
 
 export function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [value] = useState('');
-
   const {
     register,
     handleSubmit,
     reset,
-    setValue,
-    formState: { errors }
+    formState: { errors, touchedFields }
   } = useForm({
     resolver: zodResolver(loginSchema),
     mode: "onBlur"
@@ -30,30 +28,37 @@ export function LoginPage() {
   return (
     <>
       <SectionBox className="pt-0">
-        <Image src="src\assets\logo.jpg" className="w-48 justify-self-center" />
-        <h3 className="font-bold text-center py-2">Entre na sua conta</h3>
-        <div className="pt-4">
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
+        <CloudinaryImage publicId="vfq6dw8u2de9vcybxvka" className="w-64 justify-self-center" />
+        <h4 className="font-bold text-center py-7 cursor-default">Entre na sua conta</h4>
+        <div className="flex flex-col">
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
             <div>
-              <InputLabel>CPF ou CNPJ</InputLabel>
-              <InputRoot >
-                <InputField placeholder="Digite seu CPF ou CNPJ"  {...register("cpf_cnpj", {
-                  required: true,
-                  onChange: (e) => { e.target.value = maskCpfCnpj(e.target.value) }
-                })} />
-              </InputRoot>
-              <InputMessage className="text-danger-base">{errors.cpf_cnpj?.message}</InputMessage>
+              <FormField
+                register={register}
+                name="cpf_cnpj"
+                title="CPF ou CNPJ"
+                placeholder="Digite seu CPF ou CNPJ"
+                dirty={touchedFields.cpf_cnpj}
+                error={errors.cpf_cnpj}
+                onChangeMask={(v) => maskInput(v, "cpf_cnpj")}
+                icon={UserList}
+              />
             </div>
-            <div className="pt-4">
-              <InputLabel>Senha</InputLabel>
-              <InputRoot >
-                <InputField type={showPassword ? 'text' : 'password'} placeholder="Digite sua senha" {...register("senha", { required: true })} />
-                {showPassword ? <Eye className="icon" onClick={() => setShowPassword((prev) => !prev)} /> : <EyeSlash className="icon" onClick={() => setShowPassword((prev) => !prev)} />}
-              </InputRoot>
-              <InputMessage className="text-danger-base">{errors.senha?.message}</InputMessage>
+            <div>
+              <FormField
+                register={register}
+                name="password"
+                title="Senha"
+                placeholder="Digite sua senha"
+                error={errors.password}
+                dirty={touchedFields.password}
+                type="password"
+                icon={LockSimpleOpen}
+                autoComplete="password"
+              />
+              <p className="font-bold text-right cursor-pointer text-blue-tx"><span className="text-sm">Esqueceu a senha?</span></p>
             </div>
-            <p className="font-bold text-right cursor-pointer text-blue-tx">Esqueceu a senha?</p>
-            <div className="pt-4 pb-20">
+            <div className="pt-4 pb-10">
               <Button className={"bg-red-tx"} type="submit">
                 <ButtonText className="text-center text-white">
                   Entrar
@@ -61,9 +66,9 @@ export function LoginPage() {
               </Button>
             </div>
           </form>
-          <div className="justify-items-center">
-            <p className="text-center cursor-default">Não possui uma conta Teruel Express?</p>
-            <Link to="/login" className="text-red-tx font-bold">
+          <div className="grid justify-items-center">
+            <p className="text-center cursor-default">Não possui uma conta Teruel Exepress?</p>
+            <Link to="/cadastro" className="text-red-tx font-bold">
               Crie uma agora
             </Link>
           </div>
@@ -74,15 +79,53 @@ export function LoginPage() {
 
 }
 
-function maskCpfCnpj(value) {
+function FormField({ title, placeholder, register, name, error, dirty, type = "text", icon: Icon, onChangeMask, autoComplete = "off" }) {
+  let status;
+  if (dirty) {
+    status = error ? "error" : "default"
+  }
+
+  const [showPassword, setShowPassword] = useState(false);
+
+  return (
+    <>
+      <InputLabel>{title}</InputLabel>
+      <InputRoot status={status}>
+        <InputIcon>
+          {Icon && <Icon className="icon" />}
+        </InputIcon>
+        <InputField
+          autoComplete={autoComplete}
+          placeholder={placeholder}
+          type={type === "password" ? (showPassword ? "text" : "password") : type}
+          {...register(name, onChangeMask ? {
+            onChange: (e) => {
+              e.target.value = onChangeMask(e.target.value);
+            }
+          } : {})}
+        />
+        {type === "password" && (
+          <InputIcon onClick={() => setShowPassword((v) => !v)} className="cursor-pointer">
+            {showPassword ? <Eye className="icon" /> : <EyeSlash className="icon" />}
+          </InputIcon>
+        )}
+      </InputRoot>
+      <InputMessage className="text-danger-base">{error?.message}</InputMessage>
+    </>
+  )
+}
+
+function maskInput(value) {
   const onlyDigits = value.replace(/\D/g, '');
 
   if (onlyDigits.length <= 11) {
+    // Máscara CPF: 000.000.000-00
     return onlyDigits
       .replace(/(\d{3})(\d)/, '$1.$2')
       .replace(/(\d{3})(\d)/, '$1.$2')
       .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
   } else {
+    // Máscara CNPJ: 00.000.000/0000-00
     return onlyDigits
       .replace(/^(\d{2})(\d)/, '$1.$2')
       .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
@@ -96,12 +139,15 @@ const loginSchema = z.object({
   cpf_cnpj: z
     .string()
     .nonempty("Campo obrigatório")
+    .refine((val) => {
+      const digits = val.replace(/\D/g, "");
+      if (digits.length === 11) return cpf.isValid(digits);
+      if (digits.length === 14) return cnpj.isValid(digits);
+      return false;
+    }, { message: "CPF ou CNPJ inválido" }),
 
-    .refine((val) => val.length === 14 || val.length === 18, {
-      message: "CPF ou CNPJ inválido"
-    }),
-  senha: z
+  password: z
     .string()
     .nonempty("Campo obrigatório")
-    .min(8, "A senha tem que ter no minimo 8 caracteres")
+    .min(8, "Mínimo de 8 caracteres")
 });
