@@ -177,5 +177,5 @@ const loginSchema = z.object({
   password: z
     .string()
     .nonempty("Campo obrigatório")
-    .min(6, "Mínimo de 8 caracteres")
+    .min(8, "Mínimo de 8 caracteres")
 });
