@@ -2,14 +2,27 @@ import { Button, ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel
 import { Eye, EyeSlash, UserList, LockSimpleOpen, CheckCircle } from "phosphor-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { SectionBox } from "@/components";
 import { CloudinaryImage } from "@/components/CloudinaryImage.jsx";
 import { cpf, cnpj } from 'cpf-cnpj-validator';
+import { localStorageUtils } from "../../utils/localStorageUtils";
+import AuthService from "../../services/authService";
+import { useCookies } from 'react-cookie';
+
 
 export function LoginPage() {
+  const [cookies, setCookie, removeCookie] = useCookies(['myCookie']);
+
+
+  const handleSetCookie = () => {
+    setCookie('myCookie', 'myValue', { path: '/' });
+  };
+
+  const navigate = useNavigate();
+  const authService = new AuthService();
   const {
     register,
     handleSubmit,
@@ -20,10 +33,32 @@ export function LoginPage() {
     mode: "onBlur"
   });
 
-  const onSubmit = (values) => {
+  const onSubmit = async (values) => {
+    values.cpf_cnpj = values.cpf_cnpj.replace(/\D/g, '');
     console.log(values);
+    localStorageUtils.setItem("login", values);
     reset();
+    await login(values);
   };
+
+  const login = async (usuario) => {
+    try {
+      const resposta = await authService.login(JSON.stringify(usuario));
+      console.log(resposta);
+      if (resposta.status === 200 && resposta.data.token) {
+        localStorage.setItem("usuario", JSON.stringify(resposta.data));
+        // localStorage.setItem("token", JSON.stringify(resposta.data));
+        navigate("/app");
+      } else {
+        alert("Erro ao fazer login");
+      }
+    } catch (error) {
+      console.log(error);
+      
+      alert(error.mensagem);
+    }
+  }
+
 
   return (
     <>
@@ -48,7 +83,7 @@ export function LoginPage() {
               <FormField
                 register={register}
                 name="password"
-                title="Senha"
+                title="Senhaa"
                 placeholder="Digite sua senha"
                 error={errors.password}
                 dirty={touchedFields.password}
@@ -149,5 +184,5 @@ const loginSchema = z.object({
   password: z
     .string()
     .nonempty("Campo obrigatório")
-    .min(8, "Mínimo de 8 caracteres")
+    .min(6, "Mínimo de 8 caracteres")
 });
