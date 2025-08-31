@@ -11,6 +11,7 @@ import { cpf, cnpj } from 'cpf-cnpj-validator';
 import { localStorageUtils } from "../../utils/localStorageUtils";
 import AuthService from "../../services/authService";
 import Cookies from 'js-cookie';
+import { toast, Toaster } from "sonner";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ export function LoginPage() {
     register,
     handleSubmit,
     reset,
+    setError,
     formState: { errors, touchedFields }
   } = useForm({
     resolver: zodResolver(loginSchema),
@@ -40,16 +42,15 @@ export function LoginPage() {
       if (resposta.status === 200 && resposta.data.token) {
         Cookies.set('usuario', resposta.data.token, { expires: 1, path: '/' });
         navigate("/app/solicitacoes");
-      } else {
-        alert("Erro ao fazer login");
       }
     } catch (error) {
       console.log(error);
-      
-      alert(error.mensagem);
+      toast.error(error.response.data.message);
+      const message = error.response.data.message;
+      setError("cpf_cnpj", { type: "server", message });
+      setError("password", { type: "server", message });
     }
   }
-
 
   return (
     <>
@@ -99,6 +100,7 @@ export function LoginPage() {
             </Link>
           </div>
         </div>
+        <Toaster position="top-right" richColors/>
       </SectionBox>
     </>
   );
@@ -107,7 +109,7 @@ export function LoginPage() {
 
 function FormField({ title, placeholder, register, name, error, dirty, type = "text", icon: Icon, onChangeMask, autoComplete = "off" }) {
   let status;
-  if (dirty) {
+  if (error) {
     status = error ? "error" : "default"
   }
 
