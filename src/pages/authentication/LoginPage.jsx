@@ -40,7 +40,7 @@ export function LoginPage() {
       const resposta = await authService.login(JSON.stringify(usuario));
       console.log(resposta);
       if (resposta.status === 200 && resposta.data.token) {
-        Cookies.set('usuario', resposta.data.token, { expires: 1, path: '/' });
+        Cookies.set('token', resposta.data.token, { expires: 1, path: '/' });
         navigate("/app/solicitacoes");
       }
     } catch (error) {
