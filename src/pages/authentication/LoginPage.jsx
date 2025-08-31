@@ -10,17 +10,9 @@ import { CloudinaryImage } from "@/components/CloudinaryImage.jsx";
 import { cpf, cnpj } from 'cpf-cnpj-validator';
 import { localStorageUtils } from "../../utils/localStorageUtils";
 import AuthService from "../../services/authService";
-import { useCookies } from 'react-cookie';
-
+import Cookies from 'js-cookie';
 
 export function LoginPage() {
-  const [cookies, setCookie, removeCookie] = useCookies(['myCookie']);
-
-
-  const handleSetCookie = () => {
-    setCookie('myCookie', 'myValue', { path: '/' });
-  };
-
   const navigate = useNavigate();
   const authService = new AuthService();
   const {
@@ -46,9 +38,10 @@ export function LoginPage() {
       const resposta = await authService.login(JSON.stringify(usuario));
       console.log(resposta);
       if (resposta.status === 200 && resposta.data.token) {
-        localStorage.setItem("usuario", JSON.stringify(resposta.data));
-        // localStorage.setItem("token", JSON.stringify(resposta.data));
-        navigate("/app");
+        // localStorage.setItem("usuario", JSON.stringify(resposta.data));
+        Cookies.set('usuario', resposta.data.token, { expires: 1, path: '/' });
+
+        navigate("/app/solicitacoes");
       } else {
         alert("Erro ao fazer login");
       }
@@ -83,7 +76,7 @@ export function LoginPage() {
               <FormField
                 register={register}
                 name="password"
-                title="Senhaa"
+                title="Senha"
                 placeholder="Digite sua senha"
                 error={errors.password}
                 dirty={touchedFields.password}
