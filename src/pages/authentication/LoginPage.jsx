@@ -2,7 +2,7 @@ import { Button, ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel
 import { Eye, EyeSlash, UserList, LockSimpleOpen, CheckCircle } from "phosphor-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { SectionBox } from "@/components";
@@ -93,12 +93,6 @@ export function LoginPage() {
               </Button>
             </div>
           </form>
-          <div className="grid justify-items-center">
-            <p className="text-center cursor-default">Não possui uma conta Teruel Exepress?</p>
-            <Link to="/cadastro" className="text-red-tx font-bold">
-              Crie uma agora
-            </Link>
-          </div>
         </div>
         <Toaster position="top-right" richColors/>
       </SectionBox>
