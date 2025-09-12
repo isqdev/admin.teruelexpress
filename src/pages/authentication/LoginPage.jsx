@@ -9,7 +9,7 @@ import { SectionBox } from "@/components";
 import { CloudinaryImage } from "@/components/CloudinaryImage.jsx";
 import { cpf, cnpj } from 'cpf-cnpj-validator';
 import { localStorageUtils } from "../../utils/localStorageUtils";
-import AuthService from "../../services/authService";
+import AuthService from "../../services/AuthService";
 import Cookies from 'js-cookie';
 import { toast, Toaster } from "sonner";
 
