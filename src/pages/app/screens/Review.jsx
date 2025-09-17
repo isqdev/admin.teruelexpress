@@ -16,8 +16,8 @@ export function Review() {
 
 const CardsWithPaginationAndLocalStorage = () => {
   const [items, setItems] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const reviewService = new ReviewService();
 
@@ -27,10 +27,22 @@ const CardsWithPaginationAndLocalStorage = () => {
 
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  const loadReviews = async () => {
+  useEffect(() => {
+    loadReviews(currentPage);
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [currentPage]);
+
+  const loadReviews = async (page) => {
     try {
-      const response = await reviewService.findAll();
+      const response = await reviewService.findAllReviews(page);
       const reviews = response.data.content;
+      setTotalPages(response.data.totalPages);
 
       const itemsIds = reviews.map((review) => ({
         id: review.id,
@@ -53,17 +65,6 @@ const CardsWithPaginationAndLocalStorage = () => {
     return `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
   };
 
-  useEffect(() => {
-    loadReviews();
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
-
   const deleteReview = async (idDelete) => {
     const response = await reviewService.delete(idDelete);
     console.log(response);
@@ -75,13 +76,10 @@ const CardsWithPaginationAndLocalStorage = () => {
     }
   };
 
-  const totalPages = Math.ceil(items.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentItems = items.slice(startIndex, endIndex);
+  const itemsPerPage = 6;
 
   const goToPage = (page) => {
-    if (page >= 1 && page <= totalPages) {
+    if (page >= 0 && page < totalPages) {
       setCurrentPage(page);
     }
   };
@@ -134,7 +132,7 @@ const CardsWithPaginationAndLocalStorage = () => {
         </p>
       )}
       <div className=" grid grid-cols-1 lg:grid-cols-2 gap-4 ">
-        {currentItems.map((item) => (
+        {items.map((item) => (
           <div key={item.id} className="sm:mx-0 shadow-md p-4 rounded-2xl hover:scale-101 hover:cursor-pointer transition duration-200" onClick={() => openModal(item.avaliacao)}>
             <div className="flex items-center mb-2">
               <div className=" w-16 h-16 rounded-full  bg-gray-50  items-center justify-center"></div>
@@ -185,7 +183,7 @@ const CardsWithPaginationAndLocalStorage = () => {
         <div className="flex items-center gap-2 mt-4 justify-end">
           <Button
             onClick={() => goToPage(currentPage - 1)}
-            disabled={currentPage === 1}
+            disabled={currentPage === 0}
             className="disabled:opacity-50 aspect-square w-auto flex items-center justify-center"
             variant="secondary"
           >
@@ -193,12 +191,12 @@ const CardsWithPaginationAndLocalStorage = () => {
           </Button>
 
           <span className="text-sm text-gray-600 mx-2">
-            {currentPage} de {totalPages}
+            {currentPage + 1} de {totalPages}
           </span>
 
           <Button
             onClick={() => goToPage(currentPage + 1)}
-            disabled={currentPage === totalPages}
+            disabled={currentPage + 1 === totalPages}
             className="disabled:opacity-50 aspect-square w-auto flex items-center justify-center"
             variant="secondary"
           >
