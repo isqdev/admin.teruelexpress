@@ -1,6 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from "../pages/authentication/LoginPage";
-import { SignUpPage } from "../pages/authentication/SignUpPage";
 import { Layout } from "../pages/app/layout"
 import { Home } from "../pages/app/home";
 import { RequireAuth } from '../components/RequireAuth';
@@ -13,7 +12,6 @@ export function AppRoutes() {
     <Routes>
       <Route path="/" element={<Navigate to="/app/solicitacoes" replace />} />
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/cadastro" element={<SignUpPage />} />
       <Route
         path="/app"
         element={
