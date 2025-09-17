@@ -196,7 +196,7 @@ const CardsWithPaginationAndLocalStorage = () => {
 
           <Button
             onClick={() => goToPage(currentPage + 1)}
-            disabled={currentPage + 1 === totalPages}
+            disabled={currentPage >= totalPages - 1}
             className="disabled:opacity-50 aspect-square w-auto flex items-center justify-center"
             variant="secondary"
           >
