@@ -14,12 +14,12 @@ import Cookies from 'js-cookie';
 import { toast, Toaster } from "sonner";
 
 export function LoginPage() {
+  const [isWainting, setIsWainting] = useState(false);
   const navigate = useNavigate();
   const authService = new AuthService();
   const {
     register,
     handleSubmit,
-    reset,
     setError,
     formState: { errors, touchedFields }
   } = useForm({
@@ -28,10 +28,11 @@ export function LoginPage() {
   });
 
   const onSubmit = async (values) => {
+    if(isWainting) return;
+    setIsWainting(true);
     values.cpf_cnpj = values.cpf_cnpj.replace(/\D/g, '');
     console.log(values);
     localStorageUtils.setItem("login", values);
-    reset();
     await login(values);
   };
 
@@ -40,10 +41,11 @@ export function LoginPage() {
       const resposta = await authService.login(JSON.stringify(usuario));
       console.log(resposta);
       if (resposta.status === 200 && resposta.data.token) {
-        Cookies.set('token', resposta.data.token, { expires: 1, path: '/' });
+        Cookies.set('token', resposta.data.token, { expires: import.meta.env.VITE_COOKIE_EXPIRATION_DAYS, path: '/' });
         navigate("/app/solicitacoes");
       }
     } catch (error) {
+      setIsWainting(false);
       console.log(error);
       toast.error(error.response.data.message);
       const message = error.response.data.message;
