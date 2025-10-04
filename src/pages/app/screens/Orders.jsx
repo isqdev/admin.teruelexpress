@@ -15,13 +15,9 @@ import { dateString, parseDate } from "@/utils/dateHandler";
 import { localStorageUtils } from "@/utils/localStorageUtils";
 import { data, addresses } from "@/services/orders";
 import styles from "./Orders.module.css";
+import OrderService from "../../../services/OrderService";
 
 export function Orders() {
-  React.useEffect(() => {
-    localStorageUtils.getItem("solicitacoes-admin") ?? localStorageUtils.setItem("solicitacoes-admin", data);
-    localStorageUtils.getItem("addresses") ?? localStorageUtils.setItem("addresses", addresses);
-  })
-
   return (
     <>
       <SectionApp>
@@ -55,27 +51,29 @@ const getColumns = ({ setRowId, setIsAcceptModalOpen, setIsDeleteModalOpen }) =>
     ),
   },
   {
-    accessorKey: "cliente",
+    accessorKey: "client",
     header: "Cliente",
     cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("cliente")}</div>
+      <div className="capitalize">{row.getValue("client")}</div>
     ),
   },
   {
-    accessorKey: "origem",
+    accessorKey: "address",
     header: "Origem/Destino",
     cell: ({ row }) => (
-      <div className="capitalize">{
-        `${localStorageUtils.getItem("solicitacoes-admin")[row.index].origem}/${localStorageUtils.getItem("solicitacoes-admin")[row.index].destino}`}</div>
+      <div className="capitalize">{row.original.origin}/{row.original.destination}</div>
     ),
   },
   {
     accessorKey: "status",
     header: "Status",
-    filterFn: "arrIncludesSome",
-    cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("status")}</div>
-    ),
+    cell: ({ row }) => {
+      const status = row.getValue("status");
+      const formattedStatus = status ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase() : '';
+      return (
+        <div>{formattedStatus}</div>
+      );
+    },
   },
   {
     id: "actions",
@@ -84,19 +82,19 @@ const getColumns = ({ setRowId, setIsAcceptModalOpen, setIsDeleteModalOpen }) =>
     cell: ({ row }) => {
       return (
         <div className="flex gap-x-3 justify-center">
-          <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'Pendente' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={event => {
+          <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') === 'PENDENTE' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={event => {
             event.stopPropagation();
-            if (row.getValue("status") == "Pendente") {
-              setRowId(row.id);
-              setIsAcceptModalOpen(true); 
+            if (row.getValue("status") === "PENDENTE") {
+              setRowId(row.original.id);
+              setIsAcceptModalOpen(true);
             }
           }}>
             <Check />
           </ButtonShad>
-          <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'Pendente' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={event => {
+          <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') === 'PENDENTE' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={event => {
             event.stopPropagation();
-            if (row.getValue("status") == "Pendente") {
-              setRowId(row.id);
+            if (row.getValue("status") === "PENDENTE") {
+              setRowId(row.original.id);
               setIsDeleteModalOpen(true);
             }
           }}>
@@ -121,18 +119,61 @@ function DataTableDemo() {
   const isMobile = useIsMobile();
   const isSmallMobile = useIsSmallMobile();
 
+  const orderService = new OrderService();
+  const [currentPage, setCurrentPage] = React.useState(0);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const [loading, setLoading] = React.useState(false);
+
+  const formatDate = (dateArray) => {
+    if (!dateArray) return "";
+    const [year, month, day] = dateArray;
+    return `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
+  };
+
+  const loadShipments = async (page) => {
+    setLoading(true);
+    try {
+      const response = await orderService.findAllAdmin(page);
+      const shipments = response.data.content || [];
+      setTotalPages(response.data.totalPages);
+
+      const formattedData = shipments.map((shipment) => ({
+        id: shipment.id,
+        data: formatDate(shipment.dataPedido),
+        status: shipment.status,
+        origin: shipment.origem,
+        destination: shipment.destino,
+        client: shipment.cliente,
+        email: shipment.email
+      }));
+
+      setTableData(formattedData);
+    } catch (error) {
+      console.log("Erro ao carregar solicitações:", error);
+      setTableData([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  React.useEffect(() => {
+    loadShipments(currentPage);
+  }, [currentPage])
+
+  const goToPage = (page) => {
+    if (page >= 0 && page < totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
   React.useEffect(() => {
     setColumnVisibility({
       id: !isMobile,
-      origem: !isMobile,
-      aceitar: !isMobile,
+      address: !isMobile,
+      actions: !isMobile,
       status: !isSmallMobile
     })
   }, [isMobile, isSmallMobile])
-
-  React.useEffect(() => {
-    setTableData(localStorageUtils.getItem("solicitacoes-admin"));
-  }, [])
 
   const isChecked = (value) => {
     if (table.getColumn("status").getFilterValue() == null) return false;
@@ -150,22 +191,20 @@ function DataTableDemo() {
     } else statusTable.setFilterValue([value]);
   };
 
-  function statusFeedback(isAccepted, id) {
-    const solicitations = localStorageUtils.getItem("solicitacoes-admin");
-    const solicitation = solicitations[id];
+  function statusFeedback(isAccepted, solicationId) {
+    const selectedRowData = tableData.find(item => item.id === solicationId);
+    if (!selectedRowData) return;
+
     if (isAccepted) {
-      const message = `Solicitação nº ${solicitation.id} de ${solicitation.cliente} foi aceita`;
-      solicitation.status = "Aceito";
+      const message = `Solicitação nº ${selectedRowData.id} de ${selectedRowData.client} foi aceita`;
       toast.success(message);
-    }
-    else {
-      const message = `Solicitação nº ${solicitation.id} de ${solicitation.cliente} foi recusada`;
-      solicitation.status = "Recusado";
+    } else {
+      const message = `Solicitação nº ${selectedRowData.id} de ${selectedRowData.client} foi recusada`;
       toast.info(message);
     }
+    
     setRowId(null);
-    localStorageUtils.setItem("solicitacoes-admin", solicitations);
-    setTableData(solicitations);
+    loadShipments(currentPage);
   };
 
   const columns = getColumns({
@@ -185,6 +224,8 @@ function DataTableDemo() {
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    manualPagination: true,
+    pageCount: totalPages,
     state: {
       columnFilters,
       columnVisibility,
@@ -202,6 +243,16 @@ function DataTableDemo() {
       ],
     },
   });
+
+  if (loading) {
+    return (
+      <div className="w-full pt-5">
+        <div className="text-center text-gray-600">
+          Carregando solicitações...
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="w-full pt-5">
@@ -278,38 +329,36 @@ function DataTableDemo() {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
+                  Nenhuma solicitação encontrada.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex items-center gap-2">
+      {totalPages > 1 && (
+        <div className="flex items-center justify-end space-x-2 py-4">
           <Button
-            variant="secondary"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            className="disabled:opacity-50 aspect-square w-auto flex items-center justify-center"
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 0}
+            className="disabled:opacity-50 disabled:pointer-events-none w-auto"
+            variant="outline"
           >
-            <ArrowLeft size={20} className="disabled:opacity-50" />
+            <ArrowLeft className="icon" />
           </Button>
-
           <span className="text-sm text-gray-600 mx-2">
-            {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+            {currentPage + 1} de {totalPages}
           </span>
-
           <Button
-            variant="secondary"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className="disabled:opacity-50 aspect-square w-auto flex items-center justify-center"
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={currentPage >= totalPages - 1}
+            className="disabled:opacity-50 disabled:pointer-events-none w-auto"
+            variant="outline"
           >
-            <ArrowRight size={20} className="disabled:opacity-50" />
+            <ArrowRight className="icon" />
           </Button>
         </div>
-      </div>
+      )}
       <ModalOrders
         open={!!selectedRow}
         data={selectedRow}
@@ -336,7 +385,7 @@ function DataTableDemo() {
         options={["Não", "Sim"]}
         action={() => {
           statusFeedback(false, rowId);
-          setSelectedRow(null); 
+          setSelectedRow(null);
         }}
         onClose={() => setIsDeleteModalOpen(false)}
       />
@@ -351,19 +400,19 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
     } else {
       document.body.style.overflow = 'unset';
     }
-    
+
     return () => {
       document.body.style.overflow = 'unset';
     };
   }, [open]);
 
   if (!open) return null;
-  const isPending = data.status == "Pendente";
+  const isPending = data.status == "PENDENTE";
 
   const statusColorMap = {
-    "Aceito": "bg-success-light/30",
-    "Recusado": "bg-danger-light/30", 
-    "Pendente": "bg-star/30"
+    "ACEITO": "bg-success-light/30",
+    "RECUSADO": "bg-danger-light/30",
+    "PENDENTE": "bg-star/30"
   }
 
   return (
@@ -399,7 +448,7 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
               <ButtonText className="text-center">Fechar</ButtonText>
             </Button>
             <Button className="bg-red-50 text-danger-base lg:w-50 sm:mt-2" onClick={() => {
-              if(isPending) {
+              if (isPending) {
                 setRowId(localStorageUtils.getItem("solicitacoes-admin").findIndex(info => info.id == data.id));
                 setIsDeleteModalOpen(true);
               }
@@ -407,7 +456,7 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
               <ButtonText className="text-center">Recusar</ButtonText>
             </Button>
             <Button className="bg-red-tx lg:w-50 sm:mt-2" onClick={() => {
-              if(isPending) {
+              if (isPending) {
                 setRowId(localStorageUtils.getItem("solicitacoes-admin").findIndex(info => info.id == data.id));
                 setIsAcceptModalOpen(true);
               }
@@ -438,7 +487,7 @@ export function DatePickerDemo({ filterDate }) {
           data-empty={!date.length}
           className=" hover:cursor-pointer data-[empty=true]:text-muted-foreground w-auto h-auto text-left inline-flex items-center justify-center gap-2 rounded-md font-medium disabled:pointer-events-none border bg-background hover:bg-accent hover:text-accent-foreground sm:h-9 py-2 has-[>svg]:px-3"
         >
-          <CalendarIcon size="20"/>
+          <CalendarIcon size="20" />
           Escolher data
           <ChevronDown />
         </Button>
@@ -447,7 +496,7 @@ export function DatePickerDemo({ filterDate }) {
         <Calendar mode="multiple" selected={date} onSelect={setDate} className="rounded-2xl border border-gray-00" />
         <ButtonShad
           className={`float-end mt-1 bg-red-tx hover:cursor-pointer hover:bg-red-tx hover:text-white hover:shadow-none`}
-          onClick={() => { 
+          onClick={() => {
             filterDate(dateString(date));
             setOpen(false);
           }}>
@@ -467,33 +516,33 @@ function PackageList({ packages }) {
 
   const info = packages.length === 0 ? mocks : packages;
 
-return (
-  <div className="flex flex-col gap-2">
-    {info.map((pkg, index) => (
-      <div
-        key={index}
-        className="flex gap-x-2 gap-y-1 md:flex md:flex-row md:items-center md:gap-x-4 pb-1 border-b border-gray-100"
-      >
-      
-        <span className="flex items-center">
-          {pkg.loadType === "caixa" && <Package size={25} className="self-center" />}
-          {pkg.loadType === "envelope" && <File size={25} className="self-center" />}
-          {pkg.loadType === "sacola" && <ToteSimple size={25} className="self-center" />}
-        </span>
-        <div className={`gap-x-2 text-base ${styles.packInfo}`}>
-          <div className="flex gap-x-2">
-            <span className="capitalize">{pkg.loadType}</span>
-            <span>{`${pkg.width || 0}x${pkg.height || 0}x${pkg.length || 0}cm`}</span>
-          </div>
-          <div className="flex gap-x-2">
-            <span >{`${pkg.weight || 0}kg`}</span>
-            <span>Qtd:{pkg.amount || 1}</span>
+  return (
+    <div className="flex flex-col gap-2">
+      {info.map((pkg, index) => (
+        <div
+          key={index}
+          className="flex gap-x-2 gap-y-1 md:flex md:flex-row md:items-center md:gap-x-4 pb-1 border-b border-gray-100"
+        >
+
+          <span className="flex items-center">
+            {pkg.loadType === "caixa" && <Package size={25} className="self-center" />}
+            {pkg.loadType === "envelope" && <File size={25} className="self-center" />}
+            {pkg.loadType === "sacola" && <ToteSimple size={25} className="self-center" />}
+          </span>
+          <div className={`gap-x-2 text-base ${styles.packInfo}`}>
+            <div className="flex gap-x-2">
+              <span className="capitalize">{pkg.loadType}</span>
+              <span>{`${pkg.width || 0}x${pkg.height || 0}x${pkg.length || 0}cm`}</span>
+            </div>
+            <div className="flex gap-x-2">
+              <span >{`${pkg.weight || 0}kg`}</span>
+              <span>Qtd:{pkg.amount || 1}</span>
+            </div>
           </div>
         </div>
-      </div>
-    ))}
-  </div>
-);
+      ))}
+    </div>
+  );
 }
 
 function AdressList({ adress, title }) {
