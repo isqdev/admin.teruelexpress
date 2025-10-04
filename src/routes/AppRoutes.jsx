@@ -20,10 +20,13 @@ export function AppRoutes() {
           </RequireAuth>
         }
       >
+        <Route index element={<Navigate to="solicitacoes" replace />} />
+
         <Route path="home" element={<Home />} />
         <Route path="rotas-atendidas" element={<ManageRoutes />}/>
         <Route path="solicitacoes" element={<Orders />}/>
         <Route path="avaliacoes" element={<Review />}/>
+        <Route path="*" element={<Navigate to="/app/solicitacoes" replace />} />
       </Route>
     </Routes>
   );
