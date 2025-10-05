@@ -1,25 +1,27 @@
-import { Button, ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel, InputMessage, Section, Shape } from "@/components";
-import { Eye, EyeSlash, UserList, LockSimpleOpen, CheckCircle } from "phosphor-react";
+import { Button, ButtonText, InputRoot, InputField, InputIcon, InputLabel, InputMessage } from "@/components";
+import { Eye, EyeSlash, UserList, LockSimpleOpen } from "phosphor-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { SectionBox } from "@/components";
 import { CloudinaryImage } from "@/components/CloudinaryImage.jsx";
 import { cpf, cnpj } from 'cpf-cnpj-validator';
 import { localStorageUtils } from "../../utils/localStorageUtils";
-import AuthService from "../../services/authService";
+import AuthService from "../../services/AuthService";
 import Cookies from 'js-cookie';
 import { toast, Toaster } from "sonner";
 
 export function LoginPage() {
+  const [isWainting, setIsWainting] = useState(false);
   const navigate = useNavigate();
   const authService = new AuthService();
+  const expirationDays = parseInt(import.meta.env.VITE_COOKIE_EXPIRATION_DAYS);
+
   const {
     register,
     handleSubmit,
-    reset,
     setError,
     formState: { errors, touchedFields }
   } = useForm({
@@ -28,10 +30,11 @@ export function LoginPage() {
   });
 
   const onSubmit = async (values) => {
+    if(isWainting) return;
+    setIsWainting(true);
     values.cpf_cnpj = values.cpf_cnpj.replace(/\D/g, '');
     console.log(values);
     localStorageUtils.setItem("login", values);
-    reset();
     await login(values);
   };
 
@@ -40,10 +43,11 @@ export function LoginPage() {
       const resposta = await authService.login(JSON.stringify(usuario));
       console.log(resposta);
       if (resposta.status === 200 && resposta.data.token) {
-        Cookies.set('token', resposta.data.token, { expires: 1, path: '/' });
+        Cookies.set('token', resposta.data.token, { expires: expirationDays, path: '/' });
         navigate("/app/solicitacoes");
       }
     } catch (error) {
+      setIsWainting(false);
       console.log(error);
       toast.error(error.response.data.message);
       const message = error.response.data.message;
@@ -93,12 +97,6 @@ export function LoginPage() {
               </Button>
             </div>
           </form>
-          <div className="grid justify-items-center">
-            <p className="text-center cursor-default">Não possui uma conta Teruel Exepress?</p>
-            <Link to="/cadastro" className="text-red-tx font-bold">
-              Crie uma agora
-            </Link>
-          </div>
         </div>
         <Toaster position="top-right" richColors/>
       </SectionBox>
@@ -107,7 +105,7 @@ export function LoginPage() {
 
 }
 
-function FormField({ title, placeholder, register, name, error, dirty, type = "text", icon: Icon, onChangeMask, autoComplete = "off" }) {
+function FormField({ title, placeholder, register, name, error, type = "text", icon: Icon, onChangeMask, autoComplete = "off" }) {
   let status;
   if (error) {
     status = error ? "error" : "default"

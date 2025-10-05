@@ -1,14 +1,14 @@
-import { Button, ButtonText, Image, InputRoot, InputField, InputIcon, InputLabel, InputMessage, SectionApp, AppHeader, Shape, ModalSm, ModalConfirm } from "@/components";
-import {Trash,PaperPlaneTilt, Star, ArrowLeft, ArrowRight } from "phosphor-react";
+import { Button, ButtonText, SectionApp, AppHeader, ModalSm, ModalConfirm } from "@/components";
+import { Trash, PaperPlaneTilt, Star, ArrowLeft, ArrowRight } from "phosphor-react";
 import { useState, useEffect } from "react";
+import ReviewService from "../../../services/ReviewService";
 
 export function Review() {
   return (
     <>
       <SectionApp>
-          <AppHeader screenTitle="Avaliações"/>
-          <CardsWithPaginationAndLocalStorage/>
-          
+        <AppHeader screenTitle="Avaliações" />
+        <CardsWithPaginationAndLocalStorage />
       </SectionApp>
     </>
   );
@@ -16,74 +16,77 @@ export function Review() {
 
 const CardsWithPaginationAndLocalStorage = () => {
   const [items, setItems] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6; 
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
+  const reviewService = new ReviewService();
 
-  const [isModalSmOpen,setIsModalSmOpen] = useState(false);
-  const [isModalOpen,setIsModalOpen] = useState(false);
-  const [selectedReview,setSelectedReview ] = useState(null);
+  const [isModalSmOpen, setIsModalSmOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedReview, setSelectedReview] = useState(null);
 
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  const saveReviews = (reviews) => {
-    localStorage.setItem('jsonReview', JSON.stringify(reviews));
-  }
-
-    const loadReviewsLocalStorage = () => {
-      try {
-        const storedReviews = localStorage.getItem('jsonReview');
-        
-        const reviews = JSON.parse(storedReviews);
-        const itemsIds = reviews.map((review, index) => ({
-          id: index + 1, 
-          nomeCliente: 'Nome cliente', 
-          avaliacao: review.avaliacao,
-          rating: review.rating,
-          data: '10/06/2025', 
-        }));
-        setItems(itemsIds);
-        
-        
-      } catch (error) {
-        console.error("Erro ao carregar  'jsonReview' do localStorage:", error);
-        setItems([]);
-      }
+  useEffect(() => {
+    loadReviews(currentPage);
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
     };
-    useEffect(() => {
-      loadReviewsLocalStorage();
-      const handleResize = () => {
-        setWindowWidth(window.innerWidth);
-      };
-      window.addEventListener('resize', handleResize);
-      return () => {
-        window.removeEventListener('resize', handleResize);
-      };
-    },[]);
-    
-  const deleteReview = (idDelete) => {
-    const updateItems = items.filter(item => item.id !==idDelete);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [currentPage]);
+
+  const loadReviews = async (page) => {
+    try {
+      const response = await reviewService.findAllReviews(page);
+      const reviews = response.data.content;
+      setTotalPages(response.data.totalPages);
+
+      const itemsIds = reviews.map((review) => ({
+        id: review.id,
+        nomeCliente: review.nomeAvaliador,
+        avaliacao: review.descricao,
+        rating: review.nota,
+        data: formatDate(review.dataAvaliacao),
+      }));
+
+      setItems(itemsIds);
+
+    } catch (error) {
+      console.error("Erro ao carregar avaliacoes:", error);
+      setItems([]);
+    }
+  };
+
+  const formatDate = (dateArray) => {
+    const [year, month, day] = dateArray;
+    return `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
+  };
+
+  const deleteReview = async (idDelete) => {
+    const response = await reviewService.delete(idDelete);
+    console.log(response);
+
+    const updateItems = items.filter(item => item.id !== idDelete);
     setItems(updateItems);
-    saveReviews(updateItems);
-    if (updateItems.length % itemsPerPage == 0 && currentPage > 1){
+    if (updateItems.length % itemsPerPage == 0 && currentPage > 1) {
       setCurrentPage(prevPage => prevPage - 1);
     }
   };
 
-  const totalPages = Math.ceil(items.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentItems = items.slice(startIndex, endIndex);
+  const itemsPerPage = 6;
 
   const goToPage = (page) => {
-    if (page >= 1 && page <= totalPages) {
+    if (page >= 0 && page < totalPages) {
       setCurrentPage(page);
     }
   };
 
   const truncateText = (text, maxLength) => {
-    if (text.length > maxLength){
-      return text.substring(0,maxLength) + '...';
+    if (text.length > maxLength) {
+      return text.substring(0, maxLength) + '...';
     }
     return text;
   };
@@ -110,12 +113,12 @@ const CardsWithPaginationAndLocalStorage = () => {
 
 
   const getChars = () => {
-    if (windowWidth < 380) { 
-      return 35; 
-    } else if (windowWidth < 1024) { 
-      return 70; 
+    if (windowWidth < 380) {
+      return 35;
+    } else if (windowWidth < 1024) {
+      return 70;
     } else {
-      return 120; 
+      return 120;
     }
   };
 
@@ -128,9 +131,9 @@ const CardsWithPaginationAndLocalStorage = () => {
           Nenhuma avaliação encontrada.
         </p>
       )}
-      <div className=" grid grid-cols-1 lg:grid-cols-2 gap-4 "> 
-        {currentItems.map((item) => (
-          <div key={item.id} className="sm:mx-0 shadow-md p-4 rounded-2xl hover:scale-101 hover:cursor-pointer transition duration-200" onClick={() => openModal(item.avaliacao)}> 
+      <div className=" grid grid-cols-1 lg:grid-cols-2 gap-4 ">
+        {items.map((item) => (
+          <div key={item.id} className="sm:mx-0 shadow-md p-4 rounded-2xl hover:scale-101 hover:cursor-pointer transition duration-200" onClick={() => openModal(item.avaliacao)}>
             <div className="flex items-center mb-2">
               <div className=" w-16 h-16 rounded-full  bg-gray-50  items-center justify-center"></div>
               <div className="pl-2">
@@ -154,21 +157,21 @@ const CardsWithPaginationAndLocalStorage = () => {
             {item.avaliacao ? <p className=" break-words h-auto lg:h-[10rem] xl:h-[8rem]">{truncateText(item.avaliacao, maxChars)} {item.avaliacao.length > maxChars && (
               <span className="text-red-tx font-bold "> ver mais</span>
             )}</p> : <p className="italic h-auto md:h-[8rem] lg:h-[10rem] text-gray-600 xl:h-[8rem]">Sem descrição</p>}
-            
+
             <div className="pt-4 flex items-center justify-between">
-              <p className="text-gray-600">{item.data}</p> 
+              <p className="text-gray-600">{item.data}</p>
               <div className="flex ">
                 <button onClick={(e) => {
                   e.stopPropagation();
                   openModalConfirm(item.id);
                 }} >
-                  <Trash size={32} className="text-red-tx"/>
+                  <Trash size={32} className="text-red-tx cursor-pointer" />
                 </button>
                 <button onClick={(e) => {
                   e.stopPropagation();
-                  
+
                 }} className="bg-red-tx rounded-md px-1 p-0.5  ml-2">
-                  <PaperPlaneTilt size={28} className="text-white"/>
+                  <PaperPlaneTilt size={28} className="text-white cursor-pointer" />
                 </button>
               </div>
             </div>
@@ -180,7 +183,7 @@ const CardsWithPaginationAndLocalStorage = () => {
         <div className="flex items-center gap-2 mt-4 justify-end">
           <Button
             onClick={() => goToPage(currentPage - 1)}
-            disabled={currentPage === 1}
+            disabled={currentPage === 0}
             className="disabled:opacity-50 aspect-square w-auto flex items-center justify-center"
             variant="secondary"
           >
@@ -188,12 +191,12 @@ const CardsWithPaginationAndLocalStorage = () => {
           </Button>
 
           <span className="text-sm text-gray-600 mx-2">
-            {currentPage} de {totalPages}
+            {currentPage + 1} de {totalPages}
           </span>
 
           <Button
             onClick={() => goToPage(currentPage + 1)}
-            disabled={currentPage === totalPages}
+            disabled={currentPage >= totalPages - 1}
             className="disabled:opacity-50 aspect-square w-auto flex items-center justify-center"
             variant="secondary"
           >
@@ -234,7 +237,7 @@ const CardsWithPaginationAndLocalStorage = () => {
         options={["Não", "Sim"]}
         good={false}
         action={() => deleteReview(selectedReview)}
-        onClose={() =>  closeModalConfirm()}
+        onClose={() => closeModalConfirm()}
       />
     </div>
   );
