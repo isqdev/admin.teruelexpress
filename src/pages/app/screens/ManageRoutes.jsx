@@ -25,13 +25,11 @@ import { normalize } from "../../../utils/normalize";
 import { useIsMobile } from "@/hooks/use-mobile" 
 
 
-import { setInfo, getInfo, updateInfo, updateStatus, addInfo } from "@/services/cities";
 import { toast, Toaster } from "sonner";
+import RouteService from "../../../services/routeService";
+import { fetchCities } from "../../../services/ibge";
 
 export function ManageRoutes() {
-
-  getInfo() ?? setInfo();
-
   return (
     <>
       <SectionApp>
@@ -49,8 +47,8 @@ const getColumns = ({ onCancelClick, onStatusClick }) => [
     header: "Status",
     cell: ({ row }) => {
       return (
-        <ButtonShad variant="secondary" className={`hover:cursor-pointer w-18 text-black ${row.getValue('status') == 'inativo' ? '' : 'bg-blue-500 text-white hover:bg-blue-500/90 '}`}
-          onClick={() => onStatusClick(row.original)}>
+        <ButtonShad variant="secondary" className={`hover:cursor-pointer w-18 text-black ${row.getValue('status') == 'Inativo' ? '' : 'bg-blue-500 text-white hover:bg-blue-500/90 '}`}
+          onClick={() => onStatusClick(row.original.id)}>
           <div className="capitalize">{row.getValue("status")}</div>
         </ButtonShad>
       );
@@ -96,33 +94,113 @@ function RoutesDataTable() {
   const [columnFilters, setColumnFilters] = React.useState([]);
   const [columnVisibility, setColumnVisibility] = React.useState({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [tableData, setTableData] = React.useState(getInfo());
+  const [tableData, setTableData] = React.useState("");
   const [selectedRow, setSelectedRow] = React.useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
   const isMobile = useIsMobile();
 
- React.useEffect(() => {
+ useEffect(() => {
       setColumnVisibility({
         id: !isMobile,
         estado: !isMobile,
       })
     }, [isMobile])
 
+  const handleStatus = async (id) => {
+    setTableData(prevData => 
+      prevData.map(city => 
+        city.id === id 
+          ? { ...city, status: city.status === 'Ativo' ? 'Inativo' : 'Ativo' }
+          : city
+      )
+    );
+
+    try {
+      await routeService.toggleActive(id);
+      toast.success("Status atualizado!");
+    } catch (error) {
+      setTableData(prevData => 
+        prevData.map(city => 
+          city.id === id 
+            ? { ...city, status: city.status === 'Ativo' ? 'Inativo' : 'Ativo' }
+            : city
+        )
+      );
+      toast.error("Erro ao atualizar status, tente denovo.");
+    }
+  }
+
   const columns = getColumns({
     onCancelClick: setSelectedRow,
     onStatusClick: handleStatus
   })
 
-  const handleCancel = () => {
-    if (!selectedRow) return;
-    toast.info(`${selectedRow.cidade} foi removida`);
-    setTableData(updateInfo(selectedRow.id));
-    setSelectedRow(null);
+  const routeService = new RouteService();
+
+
+  // const handleCancel = () => {
+  //   if (!selectedRow) return;
+  //   toast.info(`${selectedRow.cidade} foi removida`);
+  //   setTableData(updateInfo(selectedRow.id));
+  //   setSelectedRow(null);
+  // };
+
+  useEffect(() => {
+    loadCities(currentPage)
+  }, [])
+
+  const loadCities = async (page) => {
+    setLoading(true);
+    try {
+      const response = await routeService.findAll(page);
+      console.log(response);
+      
+      if (response.data) {
+        setCurrentPage(response.data.number || 0);
+        setTotalPages(response.data.totalPages || 1);
+        
+        const mappedData = response.data.content.map(city => ({
+          id: city.id,
+          cidade: city.nome,
+          estado: city.estado?.uf || 'Paraná', 
+          status: city.status === 'ATIVO' ? 'Ativo' : 'Inativo' 
+        }));
+        
+        setTableData(mappedData);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar cidades:", error);
+      setTableData([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  function handleStatus(row) {
-    setTableData(updateStatus(row.id));
+  const getUsedCities = () => {
+    if (Array.isArray(tableData)) {
+      return tableData.map(city => city.cidade);
+    }
+    return [];
   };
+
+  const handleCancel = async () => {
+    if (!selectedRow) return;
+    
+    try {
+      await routeService.softDelete(selectedRow.id);
+      toast.success(`${selectedRow.cidade} foi removida`);
+      await loadCities(currentPage); 
+      setSelectedRow(null);
+    } catch (error) {
+      console.error("Erro ao remover cidade:", error);
+      toast.error("Erro ao remover cidade");
+    }
+  };
+
+  console.log(tableData)
 
   const table = useReactTable({
     data: tableData,
@@ -130,7 +208,6 @@ function RoutesDataTable() {
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
@@ -146,9 +223,8 @@ function RoutesDataTable() {
           desc: false,
         },
       ],
-      pagination: {
-        pageSize: 20
-      }
+      manualPagination: true,
+      pageCount: totalPages
     },
 
   });
@@ -235,31 +311,45 @@ function RoutesDataTable() {
         message="Você realmente deseja remover esta cidade?"
         open={!!selectedRow}
         options={["Não", "Sim"]}
-        action={() => handleCancel()}
+        action={handleCancel}
         onClose={() => setSelectedRow(null)}
       />
       <ModalAddCity
         open={showModal}
         onClose={() => setShowModal(false)}
-        setTableData={setTableData}
+        usedCities={getUsedCities()}
+        onCityAdded={() => loadCities(currentPage)}
       />
     </div>
   );
 }
 
-function CitySearch({clickedSuggestions, setClickedSuggestions}) {
+function CitySearch({clickedSuggestions, setClickedSuggestions, usedCities = []}) {
   const [isCityThere, setIsCityThere] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isWriting, setIsWriting] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("https://raw.githubusercontent.com/CS-PI-2025-Delinquentes/json-end/refs/heads/main/parana-cities.json")
-      .then(data => data.json()).then(data => setSuggestions(data))
-  }, []);
+    const loadCities = async () => {
+      setLoading(true);
+      try {
+        const cities = await fetchCities();
+        setSuggestions(cities);
+        setError(null);
+      } catch (error) {
+        console.error("Erro ao carregar cidades:", error);
+        setError("Erro ao carregar cidades do IBGE");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const usedCities = getInfo().map(city => city.cidade);
+    loadCities();
+  }, []);
 
   const handleChange = (event) => {
     const inputValue = event.target.value;
@@ -273,13 +363,54 @@ function CitySearch({clickedSuggestions, setClickedSuggestions}) {
   };
 
   const handleSelect = (value) => {
-    if (!usedCities.includes(value) && !clickedSuggestions.includes(value)) {
+    const normalizedValue = value.toLowerCase();
+    const normalizedUsedCities = usedCities.map(city => city.toLowerCase());
+    const normalizedClickedSuggestions = clickedSuggestions.map(city => city.toLowerCase());
+    
+    if (!normalizedUsedCities.includes(normalizedValue) && !normalizedClickedSuggestions.includes(normalizedValue)) {
       setClickedSuggestions(prev => [...prev, value]);
       setFilteredSuggestions([]);
       setIsWriting(false);
     } else setIsCityThere(true);
     setInputValue("");
   };
+
+  if (loading) {
+    return (
+      <div className="relative mt-3">
+        <InputLabel>Cidade</InputLabel>
+        <InputRoot>
+          <InputIcon>
+            <MapPin className="icon" />
+          </InputIcon>
+          <InputField 
+            disabled 
+            placeholder="Carregando cidades..." 
+          />
+        </InputRoot>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="relative mt-3">
+        <InputLabel>Cidade</InputLabel>
+        <InputRoot data-status="error">
+          <InputIcon>
+            <MapPin className="icon text-danger-base" />
+          </InputIcon>
+          <InputField 
+            disabled 
+            placeholder="Erro ao carregar cidades" 
+          />
+        </InputRoot>
+        <InputMessage className="text-danger-base pt-1">
+          {error}
+        </InputMessage>
+      </div>
+    );
+  }
 
   return (
     <div className="relative mt-3">
@@ -299,13 +430,25 @@ function CitySearch({clickedSuggestions, setClickedSuggestions}) {
         Cidade já adicionada!
       </InputMessage>}
 
-      {isWriting && <ul className="bg-gray-50 rounded-2xl absolute top-20 z-50 w-full max-h-55 overflow-y-auto">
-        {filteredSuggestions.map((suggestion, index) => (
-          <li key={index} onMouseDown={() => handleSelect(suggestion)}>
-            <p className="hover:bg-gray-100 hover:cursor-pointer rounded-2xl overflow-hidden pl-5 py-2"> {suggestion}</p>
-          </li>
-        ))}
-      </ul>}
+      {isWriting && (
+        <ul className="bg-gray-50 rounded-2xl absolute top-20 z-50 w-full max-h-55 overflow-y-auto">
+          {filteredSuggestions.length > 0 ? (
+            filteredSuggestions.map((suggestion, index) => (
+              <li key={index} onMouseDown={() => handleSelect(suggestion)}>
+                <p className="hover:bg-gray-100 hover:cursor-pointer rounded-2xl overflow-hidden pl-5 py-2">
+                  {suggestion}
+                </p>
+              </li>
+            ))
+          ) : (
+            <li>
+              <p className="pl-5 py-2 text-gray-500">
+                {inputValue ? "Nenhuma cidade encontrada" : "Digite para buscar"}
+              </p>
+            </li>
+          )}
+        </ul>
+      )}
       {<div className="pt-2">
         <span className="font-bold text-xs sm:text-base text-black">Cidades a serem adicionadas</span>
         <ul className=" flex flex-wrap gap-x-1 gap-y-2 mt-1">
@@ -326,8 +469,45 @@ function CitySearch({clickedSuggestions, setClickedSuggestions}) {
   );
 };
 
-function ModalAddCity({ onClose, open, setTableData, suggestions }) {
+function ModalAddCity({ onClose, open, usedCities = [], onCityAdded }) {
   const [clickedSuggestions, setClickedSuggestions] = useState([]);
+  const [isAdding, setIsAdding] = useState(false);
+  const routeService = new RouteService();
+
+  const handleAddCities = async () => {
+    if (clickedSuggestions.length === 0) return;
+    
+    try {
+      setIsAdding(true);
+      
+      for (const cityName of clickedSuggestions) {
+        const formattedCityName = cityName
+          .toLowerCase()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        
+        await routeService.save({
+          nome: formattedCityName,
+          estadoId: 1,
+          status: "ATIVO"
+        });
+      }
+      
+      toast.success("Adicionado: " + clickedSuggestions.join(", "));
+      setClickedSuggestions([]);
+      onClose();
+      
+      if (onCityAdded) {
+        onCityAdded();
+      }
+    } catch (error) {
+      console.error("Erro ao adicionar cidades:", error);
+      toast.error("Erro ao adicionar cidades");
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
   return (
     <ModalSm onClose={() => {onClose(); setClickedSuggestions([])}} open={open}>
@@ -339,24 +519,28 @@ function ModalAddCity({ onClose, open, setTableData, suggestions }) {
         </InputIcon>
         <p>Paraná</p>
       </InputRoot>
-      <CitySearch clickedSuggestions={clickedSuggestions} setClickedSuggestions={setClickedSuggestions} suggestions={suggestions} tabindex="-1" />
+      <CitySearch 
+        clickedSuggestions={clickedSuggestions} 
+        setClickedSuggestions={setClickedSuggestions}
+        usedCities={usedCities}
+      />
       <div className="flex justify-between gap-6">
-        <Button className="bg-gray-50 mt-4" onClick={() => { onClose(); setClickedSuggestions([]) }}>
+        <Button 
+          className="bg-gray-50 mt-4" 
+          onClick={() => { onClose(); setClickedSuggestions([]) }}
+          disabled={isAdding}
+        >
           <ButtonText className="text-black text-center">
             Cancelar
           </ButtonText>
         </Button>
-        <Button className="bg-red-tx mt-4" onClick={() => {
-          if (clickedSuggestions.length != 0) {
-            clickedSuggestions.forEach(sug => addInfo(sug))
-            setTableData(getInfo())
-            setClickedSuggestions([])
-            toast.success("Adicionado: " + clickedSuggestions.join(", "))
-            onClose()
-          }
-        }}>
+        <Button 
+          className="bg-red-tx mt-4" 
+          onClick={handleAddCities}
+          disabled={clickedSuggestions.length === 0 || isAdding}
+        >
           <ButtonText className="text-white text-center">
-            Adicionar
+            {isAdding ? "Adicionando..." : "Adicionar"}
           </ButtonText>
         </Button>
       </div>
