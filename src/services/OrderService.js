@@ -14,6 +14,12 @@ class OrderService extends BaseService {
         const response = await this.api.patch(`${this.endPoint}/admin/${id}?aceito=${aceito}`);
         return response;
     }
+
+    async getDetalhes(id) {
+        const response = await this.api.get(`${this.endPoint}/admin/${id}`);
+        console.log(response);
+        return response;
+    }
 }
 
 export default OrderService;

@@ -12,10 +12,9 @@ import { useIsMobile, useIsSmallMobile } from "@/hooks/use-mobile"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover"
 import { dateString, parseDate } from "@/utils/dateHandler";
-import { localStorageUtils } from "@/utils/localStorageUtils";
-import { data, addresses } from "@/services/orders";
-import styles from "./Orders.module.css";
 import OrderService from "../../../services/OrderService";
+
+import styles from "./Orders.module.css";
 
 export function Orders() {
   return (
@@ -107,22 +106,22 @@ const getColumns = ({ setRowId, setIsAcceptModalOpen, setIsDeleteModalOpen }) =>
 ];
 
 function DataTableDemo() {
-  const [sorting, setSorting] = React.useState([]);
   const [columnFilters, setColumnFilters] = React.useState([]);
   const [columnVisibility, setColumnVisibility] = React.useState({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [selectedRow, setSelectedRow] = React.useState(null);
+  const [selectedRowDetails, setSelectedRowDetails] = React.useState(null);
+  const [loadingDetails, setLoadingDetails] = React.useState(false);
   const [rowId, setRowId] = React.useState(0);
   const [tableData, setTableData] = React.useState([]);
   const [isAcceptModalOpen, setIsAcceptModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
-  const isMobile = useIsMobile();
-  const isSmallMobile = useIsSmallMobile();
-
-  const orderService = new OrderService();
   const [currentPage, setCurrentPage] = React.useState(0);
   const [totalPages, setTotalPages] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
+  
+  const isMobile = useIsMobile();
+  const isSmallMobile = useIsSmallMobile();
 
   const formatDate = (dateArray) => {
     if (!dateArray) return "";
@@ -130,9 +129,38 @@ function DataTableDemo() {
     return `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
   };
 
+  const parseCityString = (cityString) => {
+    if (!cityString) return { nome: '', estado: { nome: '', uf: '' } };
+    
+    const cityNameMatch = cityString.match(/nome=([^,]+)/);
+    const cityName = cityNameMatch ? cityNameMatch[1] : '';
+    
+    const stateMatch = cityString.match(/estado=Estado\([^)]+\)/);
+    let stateName = '';
+    let stateUf = '';
+    
+    if (stateMatch) {
+      const stateString = stateMatch[0];
+      const stateNameMatch = stateString.match(/nome=([^,]+)/);
+      const stateUfMatch = stateString.match(/uf=([^)]+)/);
+      
+      stateName = stateNameMatch ? stateNameMatch[1] : '';
+      stateUf = stateUfMatch ? stateUfMatch[1] : '';
+    }
+    
+    return {
+      nome: cityName,
+      estado: {
+        nome: stateName,
+        uf: stateUf
+      }
+    };
+  };
+
   const loadShipments = async (page) => {
     setLoading(true);
     try {
+      const orderService = new OrderService();
       const response = await orderService.findAllAdmin(page);
       const shipments = response.data.content || [];
       setTotalPages(response.data.totalPages);
@@ -156,46 +184,66 @@ function DataTableDemo() {
     }
   }
 
-  React.useEffect(() => {
-    loadShipments(currentPage);
-  }, [currentPage])
+  const loadOrderDetails = async (orderId) => {
+    setLoadingDetails(true);
+    try {
+      const orderService = new OrderService();
+      const response = await orderService.getDetalhes(orderId);
+      const orderData = response.data;
+      
+      // Parse das strings de cidade
+      const origemCity = parseCityString(orderData.origem.city);
+      const destinoCity = parseCityString(orderData.destino.city);
+      
+      const formattedDetails = {
+        id: orderData.id,
+        cliente: orderData.cliente,
+        status: orderData.status,
+        data: formatDate(orderData.dataPedido),
+        origem: {
+          cep: orderData.origem.cep,
+          estado: origemCity.estado.nome,
+          uf: origemCity.estado.uf,
+          cidade: origemCity.nome,
+          bairro: orderData.origem.neighborhood,
+          rua: orderData.origem.street,
+          numero: orderData.origem.number
+        },
+        destino: {
+          cep: orderData.destino.cep,
+          estado: destinoCity.estado.nome,
+          uf: destinoCity.estado.uf,
+          cidade: destinoCity.nome,
+          bairro: orderData.destino.neighborhood,
+          rua: orderData.destino.street,
+          numero: orderData.destino.number
+        },
+        pacotes: orderData.pacotes.map(pacote => ({
+          id: pacote.id,
+          loadType: pacote.tipo.toLowerCase(),
+          width: pacote.largura,
+          height: pacote.altura,
+          length: pacote.comprimento,
+          weight: pacote.peso,
+          amount: pacote.quantidade
+        }))
+      };
 
-  const goToPage = (page) => {
-    if (page >= 0 && page < totalPages) {
-      setCurrentPage(page);
+      setSelectedRowDetails(formattedDetails);
+    } catch (error) {
+      console.error("Erro ao carregar detalhes da solicitação:", error);
+      toast.error("Erro ao carregar detalhes da solicitação");
+    } finally {
+      setLoadingDetails(false);
     }
-  };
+  }
 
-  React.useEffect(() => {
-    setColumnVisibility({
-      id: !isMobile,
-      address: !isMobile,
-      actions: !isMobile,
-      status: !isSmallMobile
-    })
-  }, [isMobile, isSmallMobile])
-
-  const isChecked = (value) => {
-    if (table.getColumn("status").getFilterValue() == null) return false;
-    else return table.getColumn("status").getFilterValue().includes(value);
-  };
-
-  function filterStatus(value) {
-    const statusTable = table.getColumn("status");
-    const filteredValue = statusTable.getFilterValue();
-    if (filteredValue != null) {
-      if (filteredValue.includes(value))
-        statusTable.setFilterValue(filteredValue.filter(stat => stat != value));
-      else
-        statusTable.setFilterValue(prev => [...prev, value]);
-    } else statusTable.setFilterValue([value]);
-  };
-
-  async function statusFeedback(isAccepted, solicationId) {
+  const statusFeedback = async (isAccepted, solicationId) => {
     const selectedRowData = tableData.find(item => item.id === solicationId);
     if (!selectedRowData) return;
 
     try {
+      const orderService = new OrderService();
       if (isAccepted) {
         await orderService.update(solicationId, true);
         const message = `Solicitação nº ${selectedRowData.id} de ${selectedRowData.client} foi aceita`;
@@ -215,6 +263,41 @@ function DataTableDemo() {
     setRowId(null);
   };
 
+  const goToPage = (page) => {
+    if (page >= 0 && page < totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const isChecked = (value) => {
+    const filterValue = table.getColumn("status").getFilterValue();
+    return filterValue ? filterValue.includes(value) : false;
+  };
+
+  const filterStatus = (value) => {
+    const statusTable = table.getColumn("status");
+    const filteredValue = statusTable.getFilterValue();
+    if (filteredValue != null) {
+      if (filteredValue.includes(value))
+        statusTable.setFilterValue(filteredValue.filter(stat => stat != value));
+      else
+        statusTable.setFilterValue(prev => [...prev, value]);
+    } else statusTable.setFilterValue([value]);
+  };
+
+  React.useEffect(() => {
+    loadShipments(currentPage);
+  }, [currentPage])
+
+  React.useEffect(() => {
+    setColumnVisibility({
+      id: !isMobile,
+      address: !isMobile,
+      actions: !isMobile,
+      status: !isSmallMobile
+    })
+  }, [isMobile, isSmallMobile])
+
   const columns = getColumns({
     setRowId: setRowId,
     setIsAcceptModalOpen: setIsAcceptModalOpen,
@@ -224,7 +307,6 @@ function DataTableDemo() {
   const table = useReactTable({
     data: tableData,
     columns,
-    onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -265,7 +347,6 @@ function DataTableDemo() {
   return (
     <div className="w-full pt-5">
       <div className="flex items-center py-4 gap-x-3">
-
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <ButtonShad variant="outline">
@@ -295,8 +376,8 @@ function DataTableDemo() {
         </DropdownMenu>
 
         <DatePickerDemo filterDate={table.getColumn("data").setFilterValue}></DatePickerDemo>
-
       </div>
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -321,7 +402,10 @@ function DataTableDemo() {
                 <TableRow
                   key={row.id}
                   className="hover:cursor-pointer text-center"
-                  onClick={() => setSelectedRow(row.original)}
+                  onClick={() => {
+                    setSelectedRow(row.original);
+                    loadOrderDetails(row.original.id);
+                  }}
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map(cell => (
@@ -344,6 +428,7 @@ function DataTableDemo() {
           </TableBody>
         </Table>
       </div>
+      
       {totalPages > 1 && (
         <div className="flex items-center justify-end space-x-2 py-4">
           <Button
@@ -367,15 +452,22 @@ function DataTableDemo() {
           </Button>
         </div>
       )}
+      
       <ModalOrders
         open={!!selectedRow}
         data={selectedRow}
-        onClose={() => setSelectedRow(null)}
+        detailsData={selectedRowDetails}
+        loadingDetails={loadingDetails}
+        onClose={() => {
+          setSelectedRow(null);
+          setSelectedRowDetails(null);
+        }}
         setRowId={setRowId}
         rowId={rowId}
         setIsDeleteModalOpen={setIsDeleteModalOpen}
         setIsAcceptModalOpen={setIsAcceptModalOpen}
       />
+      
       <ModalConfirm
         message="Deseja aceitar a solicitação?"
         open={isAcceptModalOpen}
@@ -387,6 +479,7 @@ function DataTableDemo() {
         }}
         onClose={() => setIsAcceptModalOpen(false)}
       />
+      
       <ModalConfirm
         message="Deseja recusar a solicitação?"
         open={isDeleteModalOpen}
@@ -401,7 +494,7 @@ function DataTableDemo() {
   );
 }
 
-function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setIsDeleteModalOpen }) {
+function ModalOrders({ open, data, detailsData, loadingDetails, onClose, setRowId, setIsAcceptModalOpen, setIsDeleteModalOpen }) {
   React.useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden';
@@ -415,7 +508,20 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
   }, [open]);
 
   if (!open) return null;
+  
   const isPending = data.status == "PENDENTE";
+  
+  if (loadingDetails || !detailsData) {
+    return (
+      <Modal open={open} onClose={onClose} className="md:w-auto lg:w-5xl overflow-y-auto scrollbar-hidden md:max-h-[95vh]">
+        <div className="flex justify-center items-center py-10">
+          <div className="text-center text-gray-600">
+            Carregando detalhes da solicitação...
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   const statusColorMap = {
     "ACEITO": "bg-success-light/30",
@@ -429,25 +535,25 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
         <Shape className="border-gray-600 border-1 flex flex-col sm:pt-2 sm:pb-5 sm:px-4 sm:col-span-2 md:max-w-2xl">
           <div className="flex items-center justify-between mb-2">
             <span className="text-lg font-bold">Solicitação</span>
-            <span className={`text-sm font-bold px-2 py-1 rounded-lg ${statusColorMap[data.status]}`}>{data.status}</span>
+            <span className={`text-sm font-bold px-2 py-1 rounded-lg ${statusColorMap[detailsData.status]}`}>{detailsData.status}</span>
           </div>
           <div className="grid grid-cols-2 gap-x-6 gap-y-2">
             <div className="flex flex-col">
               <span className="sm:text-xs font-bold mt-1">Cliente</span>
-              <span>{data.cliente}</span>
+              <span>{detailsData.cliente}</span>
             </div>
             <div className="flex flex-col">
               <span className="sm:text-xs font-bold mt-1">Data</span>
-              <span>{data.data}</span>
+              <span>{detailsData.data}</span>
             </div>
           </div>
           <span className="sm:text-xs font-bold my-1">Carga</span>
           <Shape className="bg-gray-50 sm:pl-3 sm:pt-3 md:h-full">
-            <PackageList packages={data.pacotes} />
+            <PackageList packages={detailsData.pacotes} />
           </Shape>
         </Shape>
-        <AdressList adress={addresses[0]} title="Endereço de Origem" />
-        <AdressList adress={addresses[1]} title="Endereço de Destino" />
+        <AdressList adress={detailsData.origem} title="Endereço de Origem" />
+        <AdressList adress={detailsData.destino} title="Endereço de Destino" />
       </div>
       {(
         isPending ? (
@@ -457,7 +563,7 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
             </Button>
             <Button className="bg-red-50 text-danger-base lg:w-50 sm:mt-2" onClick={() => {
               if (isPending) {
-                setRowId(localStorageUtils.getItem("solicitacoes-admin").findIndex(info => info.id == data.id));
+                setRowId(detailsData.id);
                 setIsDeleteModalOpen(true);
               }
             }}>
@@ -465,7 +571,7 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
             </Button>
             <Button className="bg-red-tx lg:w-50 sm:mt-2" onClick={() => {
               if (isPending) {
-                setRowId(localStorageUtils.getItem("solicitacoes-admin").findIndex(info => info.id == data.id));
+                setRowId(detailsData.id);
                 setIsAcceptModalOpen(true);
               }
             }}>
@@ -516,22 +622,13 @@ export function DatePickerDemo({ filterDate }) {
 }
 
 function PackageList({ packages }) {
-  const mocks = [
-    { loadType: "caixa", width: 20, height: 20, length: 20, weight: 2 },
-    { loadType: "sacola", weight: 3, amount: 2 },
-    { loadType: "envelope", amount: 5 },
-  ];
-
-  const info = packages.length === 0 ? mocks : packages;
-
   return (
     <div className="flex flex-col gap-2">
-      {info.map((pkg, index) => (
+      {packages.map((pkg, index) => (
         <div
           key={index}
           className="flex gap-x-2 gap-y-1 md:flex md:flex-row md:items-center md:gap-x-4 pb-1 border-b border-gray-100"
         >
-
           <span className="flex items-center">
             {pkg.loadType === "caixa" && <Package size={25} className="self-center" />}
             {pkg.loadType === "envelope" && <File size={25} className="self-center" />}
@@ -555,8 +652,15 @@ function PackageList({ packages }) {
 
 function AdressList({ adress, title }) {
   const labels = ["CEP", "Estado", "Cidade", "Bairro", "Rua", "Número"];
-
-  const mocks = ["87808-500", "Paraná", "Paranavaí", "Fenda do Biquini", "Rua 10", "7"];
+  
+  const addressValues = [
+    adress?.cep || "",
+    adress?.estado || "",
+    adress?.cidade || "",
+    adress?.bairro || "",
+    adress?.rua || "",
+    adress?.numero || ""
+  ];
 
   return (
     <Shape className="border-gray-600 border-1 sm:pt-2 sm:pb-5 sm:pl-4 lg:max-w-70 lg:mt-0 md:max-w-90">
@@ -564,7 +668,7 @@ function AdressList({ adress, title }) {
       {labels.map((label, index) => (
         <div className="flex flex-col mt-3" key={index}>
           <span className="sm:text-xs font-bold">{label}</span>
-          <span className="text-base">{adress.length ?? mocks[index]}</span>
+          <span className="text-base">{addressValues[index]}</span>
         </div>
       ))}
     </Shape>
