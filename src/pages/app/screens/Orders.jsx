@@ -191,20 +191,28 @@ function DataTableDemo() {
     } else statusTable.setFilterValue([value]);
   };
 
-  function statusFeedback(isAccepted, solicationId) {
+  async function statusFeedback(isAccepted, solicationId) {
     const selectedRowData = tableData.find(item => item.id === solicationId);
     if (!selectedRowData) return;
 
-    if (isAccepted) {
-      const message = `Solicitação nº ${selectedRowData.id} de ${selectedRowData.client} foi aceita`;
-      toast.success(message);
-    } else {
-      const message = `Solicitação nº ${selectedRowData.id} de ${selectedRowData.client} foi recusada`;
-      toast.info(message);
+    try {
+      if (isAccepted) {
+        await orderService.update(solicationId, true);
+        const message = `Solicitação nº ${selectedRowData.id} de ${selectedRowData.client} foi aceita`;
+        toast.success(message);
+      } else {
+        await orderService.update(solicationId, false);
+        const message = `Solicitação nº ${selectedRowData.id} de ${selectedRowData.client} foi recusada`;
+        toast.info(message);
+      }
+
+      await loadShipments(currentPage);
+    } catch (error) {
+      console.error("Erro ao atualizar status:", error);
+      toast.error("Erro ao atualizar solicitação");
     }
-    
+
     setRowId(null);
-    loadShipments(currentPage);
   };
 
   const columns = getColumns({

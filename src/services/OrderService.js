@@ -9,7 +9,11 @@ class OrderService extends BaseService {
         const response = await this.api.get(`${this.endPoint}/admin?size=20&page=${page}&sort=id,desc`);
         return response;
     }
-}
 
+    async update(id, aceito) {
+        const response = await this.api.patch(`${this.endPoint}/admin/${id}?aceito=${aceito}`);
+        return response;
+    }
+}
 
 export default OrderService;
