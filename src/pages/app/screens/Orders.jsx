@@ -12,16 +12,11 @@ import { useIsMobile, useIsSmallMobile } from "@/hooks/use-mobile"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover"
 import { dateString, parseDate } from "@/utils/dateHandler";
-import { localStorageUtils } from "@/utils/localStorageUtils";
-import { data, addresses } from "@/services/orders";
+import OrderService from "../../../services/OrderService";
+
 import styles from "./Orders.module.css";
 
 export function Orders() {
-  React.useEffect(() => {
-    localStorageUtils.getItem("solicitacoes-admin") ?? localStorageUtils.setItem("solicitacoes-admin", data);
-    localStorageUtils.getItem("addresses") ?? localStorageUtils.setItem("addresses", addresses);
-  })
-
   return (
     <>
       <SectionApp>
@@ -55,27 +50,29 @@ const getColumns = ({ setRowId, setIsAcceptModalOpen, setIsDeleteModalOpen }) =>
     ),
   },
   {
-    accessorKey: "cliente",
+    accessorKey: "client",
     header: "Cliente",
     cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("cliente")}</div>
+      <div className="capitalize">{row.getValue("client")}</div>
     ),
   },
   {
-    accessorKey: "origem",
+    accessorKey: "address",
     header: "Origem/Destino",
     cell: ({ row }) => (
-      <div className="capitalize">{
-        `${localStorageUtils.getItem("solicitacoes-admin")[row.index].origem}/${localStorageUtils.getItem("solicitacoes-admin")[row.index].destino}`}</div>
+      <div className="capitalize">{row.original.origin}/{row.original.destination}</div>
     ),
   },
   {
     accessorKey: "status",
     header: "Status",
-    filterFn: "arrIncludesSome",
-    cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("status")}</div>
-    ),
+    cell: ({ row }) => {
+      const status = row.getValue("status");
+      const formattedStatus = status ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase() : '';
+      return (
+        <div>{formattedStatus}</div>
+      );
+    },
   },
   {
     id: "actions",
@@ -84,19 +81,19 @@ const getColumns = ({ setRowId, setIsAcceptModalOpen, setIsDeleteModalOpen }) =>
     cell: ({ row }) => {
       return (
         <div className="flex gap-x-3 justify-center">
-          <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'Pendente' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={event => {
+          <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') === 'PENDENTE' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={event => {
             event.stopPropagation();
-            if (row.getValue("status") == "Pendente") {
-              setRowId(row.id);
-              setIsAcceptModalOpen(true); 
+            if (row.getValue("status") === "PENDENTE") {
+              setRowId(row.original.id);
+              setIsAcceptModalOpen(true);
             }
           }}>
             <Check />
           </ButtonShad>
-          <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') == 'Pendente' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={event => {
+          <ButtonShad variant="secondary" className={`h-8 w-8 p-0 ${row.getValue('status') === 'PENDENTE' ? ' hover:cursor-pointer' : 'capitalize text-gray-100 cursor-default'}`} onClick={event => {
             event.stopPropagation();
-            if (row.getValue("status") == "Pendente") {
-              setRowId(row.id);
+            if (row.getValue("status") === "PENDENTE") {
+              setRowId(row.original.id);
               setIsDeleteModalOpen(true);
             }
           }}>
@@ -109,37 +106,175 @@ const getColumns = ({ setRowId, setIsAcceptModalOpen, setIsDeleteModalOpen }) =>
 ];
 
 function DataTableDemo() {
-  const [sorting, setSorting] = React.useState([]);
   const [columnFilters, setColumnFilters] = React.useState([]);
   const [columnVisibility, setColumnVisibility] = React.useState({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [selectedRow, setSelectedRow] = React.useState(null);
+  const [selectedRowDetails, setSelectedRowDetails] = React.useState(null);
+  const [loadingDetails, setLoadingDetails] = React.useState(false);
   const [rowId, setRowId] = React.useState(0);
   const [tableData, setTableData] = React.useState([]);
   const [isAcceptModalOpen, setIsAcceptModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [currentPage, setCurrentPage] = React.useState(0);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const [loading, setLoading] = React.useState(false);
+  
   const isMobile = useIsMobile();
   const isSmallMobile = useIsSmallMobile();
 
-  React.useEffect(() => {
-    setColumnVisibility({
-      id: !isMobile,
-      origem: !isMobile,
-      aceitar: !isMobile,
-      status: !isSmallMobile
-    })
-  }, [isMobile, isSmallMobile])
-
-  React.useEffect(() => {
-    setTableData(localStorageUtils.getItem("solicitacoes-admin"));
-  }, [])
-
-  const isChecked = (value) => {
-    if (table.getColumn("status").getFilterValue() == null) return false;
-    else return table.getColumn("status").getFilterValue().includes(value);
+  const formatDate = (dateArray) => {
+    if (!dateArray) return "";
+    const [year, month, day] = dateArray;
+    return `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
   };
 
-  function filterStatus(value) {
+  const parseCityString = (cityString) => {
+    if (!cityString) return { nome: '', estado: { nome: '', uf: '' } };
+    
+    const cityNameMatch = cityString.match(/nome=([^,]+)/);
+    const cityName = cityNameMatch ? cityNameMatch[1] : '';
+    
+    const stateMatch = cityString.match(/estado=Estado\([^)]+\)/);
+    let stateName = '';
+    let stateUf = '';
+    
+    if (stateMatch) {
+      const stateString = stateMatch[0];
+      const stateNameMatch = stateString.match(/nome=([^,]+)/);
+      const stateUfMatch = stateString.match(/uf=([^)]+)/);
+      
+      stateName = stateNameMatch ? stateNameMatch[1] : '';
+      stateUf = stateUfMatch ? stateUfMatch[1] : '';
+    }
+    
+    return {
+      nome: cityName,
+      estado: {
+        nome: stateName,
+        uf: stateUf
+      }
+    };
+  };
+
+  const loadShipments = async (page) => {
+    setLoading(true);
+    try {
+      const orderService = new OrderService();
+      const response = await orderService.findAllAdmin(page);
+      const shipments = response.data.content || [];
+      setTotalPages(response.data.totalPages);
+
+      const formattedData = shipments.map((shipment) => ({
+        id: shipment.id,
+        data: formatDate(shipment.dataPedido),
+        status: shipment.status,
+        origin: shipment.origem,
+        destination: shipment.destino,
+        client: shipment.cliente,
+        email: shipment.email
+      }));
+
+      setTableData(formattedData);
+    } catch (error) {
+      console.log("Erro ao carregar solicitações:", error);
+      setTableData([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const loadOrderDetails = async (orderId) => {
+    setLoadingDetails(true);
+    try {
+      const orderService = new OrderService();
+      const response = await orderService.getDetalhes(orderId);
+      const orderData = response.data;
+      
+      // Parse das strings de cidade
+      const origemCity = parseCityString(orderData.origem.city);
+      const destinoCity = parseCityString(orderData.destino.city);
+      
+      const formattedDetails = {
+        id: orderData.id,
+        cliente: orderData.cliente,
+        status: orderData.status,
+        data: formatDate(orderData.dataPedido),
+        origem: {
+          cep: orderData.origem.cep,
+          estado: origemCity.estado.nome,
+          uf: origemCity.estado.uf,
+          cidade: origemCity.nome,
+          bairro: orderData.origem.neighborhood,
+          rua: orderData.origem.street,
+          numero: orderData.origem.number
+        },
+        destino: {
+          cep: orderData.destino.cep,
+          estado: destinoCity.estado.nome,
+          uf: destinoCity.estado.uf,
+          cidade: destinoCity.nome,
+          bairro: orderData.destino.neighborhood,
+          rua: orderData.destino.street,
+          numero: orderData.destino.number
+        },
+        pacotes: orderData.pacotes.map(pacote => ({
+          id: pacote.id,
+          loadType: pacote.tipo.toLowerCase(),
+          width: pacote.largura,
+          height: pacote.altura,
+          length: pacote.comprimento,
+          weight: pacote.peso,
+          amount: pacote.quantidade
+        }))
+      };
+
+      setSelectedRowDetails(formattedDetails);
+    } catch (error) {
+      console.error("Erro ao carregar detalhes da solicitação:", error);
+      toast.error("Erro ao carregar detalhes da solicitação");
+    } finally {
+      setLoadingDetails(false);
+    }
+  }
+
+  const statusFeedback = async (isAccepted, solicationId) => {
+    const selectedRowData = tableData.find(item => item.id === solicationId);
+    if (!selectedRowData) return;
+
+    try {
+      const orderService = new OrderService();
+      if (isAccepted) {
+        await orderService.update(solicationId, true);
+        const message = `Solicitação nº ${selectedRowData.id} de ${selectedRowData.client} foi aceita`;
+        toast.success(message);
+      } else {
+        await orderService.update(solicationId, false);
+        const message = `Solicitação nº ${selectedRowData.id} de ${selectedRowData.client} foi recusada`;
+        toast.info(message);
+      }
+
+      await loadShipments(currentPage);
+    } catch (error) {
+      console.error("Erro ao atualizar status:", error);
+      toast.error("Erro ao atualizar solicitação");
+    }
+
+    setRowId(null);
+  };
+
+  const goToPage = (page) => {
+    if (page >= 0 && page < totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const isChecked = (value) => {
+    const filterValue = table.getColumn("status").getFilterValue();
+    return filterValue ? filterValue.includes(value) : false;
+  };
+
+  const filterStatus = (value) => {
     const statusTable = table.getColumn("status");
     const filteredValue = statusTable.getFilterValue();
     if (filteredValue != null) {
@@ -150,23 +285,18 @@ function DataTableDemo() {
     } else statusTable.setFilterValue([value]);
   };
 
-  function statusFeedback(isAccepted, id) {
-    const solicitations = localStorageUtils.getItem("solicitacoes-admin");
-    const solicitation = solicitations[id];
-    if (isAccepted) {
-      const message = `Solicitação nº ${solicitation.id} de ${solicitation.cliente} foi aceita`;
-      solicitation.status = "Aceito";
-      toast.success(message);
-    }
-    else {
-      const message = `Solicitação nº ${solicitation.id} de ${solicitation.cliente} foi recusada`;
-      solicitation.status = "Recusado";
-      toast.info(message);
-    }
-    setRowId(null);
-    localStorageUtils.setItem("solicitacoes-admin", solicitations);
-    setTableData(solicitations);
-  };
+  React.useEffect(() => {
+    loadShipments(currentPage);
+  }, [currentPage])
+
+  React.useEffect(() => {
+    setColumnVisibility({
+      id: !isMobile,
+      address: !isMobile,
+      actions: !isMobile,
+      status: !isSmallMobile
+    })
+  }, [isMobile, isSmallMobile])
 
   const columns = getColumns({
     setRowId: setRowId,
@@ -177,7 +307,6 @@ function DataTableDemo() {
   const table = useReactTable({
     data: tableData,
     columns,
-    onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -185,6 +314,8 @@ function DataTableDemo() {
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    manualPagination: true,
+    pageCount: totalPages,
     state: {
       columnFilters,
       columnVisibility,
@@ -203,10 +334,19 @@ function DataTableDemo() {
     },
   });
 
+  if (loading) {
+    return (
+      <div className="w-full pt-5">
+        <div className="text-center text-gray-600">
+          Carregando solicitações...
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="w-full pt-5">
       <div className="flex items-center py-4 gap-x-3">
-
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <ButtonShad variant="outline">
@@ -236,8 +376,8 @@ function DataTableDemo() {
         </DropdownMenu>
 
         <DatePickerDemo filterDate={table.getColumn("data").setFilterValue}></DatePickerDemo>
-
       </div>
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -262,7 +402,10 @@ function DataTableDemo() {
                 <TableRow
                   key={row.id}
                   className="hover:cursor-pointer text-center"
-                  onClick={() => setSelectedRow(row.original)}
+                  onClick={() => {
+                    setSelectedRow(row.original);
+                    loadOrderDetails(row.original.id);
+                  }}
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map(cell => (
@@ -278,47 +421,53 @@ function DataTableDemo() {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
+                  Nenhuma solicitação encontrada.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex items-center gap-2">
+      
+      {totalPages > 1 && (
+        <div className="flex items-center justify-end space-x-2 py-4">
           <Button
-            variant="secondary"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            className="disabled:opacity-50 aspect-square w-auto flex items-center justify-center"
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 0}
+            className="disabled:opacity-50 disabled:pointer-events-none w-auto"
+            variant="outline"
           >
-            <ArrowLeft size={20} className="disabled:opacity-50" />
+            <ArrowLeft className="icon" />
           </Button>
-
           <span className="text-sm text-gray-600 mx-2">
-            {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+            {currentPage + 1} de {totalPages}
           </span>
-
           <Button
-            variant="secondary"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className="disabled:opacity-50 aspect-square w-auto flex items-center justify-center"
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={currentPage >= totalPages - 1}
+            className="disabled:opacity-50 disabled:pointer-events-none w-auto"
+            variant="outline"
           >
-            <ArrowRight size={20} className="disabled:opacity-50" />
+            <ArrowRight className="icon" />
           </Button>
         </div>
-      </div>
+      )}
+      
       <ModalOrders
         open={!!selectedRow}
         data={selectedRow}
-        onClose={() => setSelectedRow(null)}
+        detailsData={selectedRowDetails}
+        loadingDetails={loadingDetails}
+        onClose={() => {
+          setSelectedRow(null);
+          setSelectedRowDetails(null);
+        }}
         setRowId={setRowId}
         rowId={rowId}
         setIsDeleteModalOpen={setIsDeleteModalOpen}
         setIsAcceptModalOpen={setIsAcceptModalOpen}
       />
+      
       <ModalConfirm
         message="Deseja aceitar a solicitação?"
         open={isAcceptModalOpen}
@@ -330,13 +479,14 @@ function DataTableDemo() {
         }}
         onClose={() => setIsAcceptModalOpen(false)}
       />
+      
       <ModalConfirm
         message="Deseja recusar a solicitação?"
         open={isDeleteModalOpen}
         options={["Não", "Sim"]}
         action={() => {
           statusFeedback(false, rowId);
-          setSelectedRow(null); 
+          setSelectedRow(null);
         }}
         onClose={() => setIsDeleteModalOpen(false)}
       />
@@ -344,26 +494,39 @@ function DataTableDemo() {
   );
 }
 
-function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setIsDeleteModalOpen }) {
+function ModalOrders({ open, data, detailsData, loadingDetails, onClose, setRowId, setIsAcceptModalOpen, setIsDeleteModalOpen }) {
   React.useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
     }
-    
+
     return () => {
       document.body.style.overflow = 'unset';
     };
   }, [open]);
 
   if (!open) return null;
-  const isPending = data.status == "Pendente";
+  
+  const isPending = data.status == "PENDENTE";
+  
+  if (loadingDetails || !detailsData) {
+    return (
+      <Modal open={open} onClose={onClose} className="md:w-auto lg:w-5xl overflow-y-auto scrollbar-hidden md:max-h-[95vh]">
+        <div className="flex justify-center items-center py-10">
+          <div className="text-center text-gray-600">
+            Carregando detalhes da solicitação...
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   const statusColorMap = {
-    "Aceito": "bg-success-light/30",
-    "Recusado": "bg-danger-light/30", 
-    "Pendente": "bg-star/30"
+    "ACEITO": "bg-success-light/30",
+    "RECUSADO": "bg-danger-light/30",
+    "PENDENTE": "bg-star/30"
   }
 
   return (
@@ -372,25 +535,25 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
         <Shape className="border-gray-600 border-1 flex flex-col sm:pt-2 sm:pb-5 sm:px-4 sm:col-span-2 md:max-w-2xl">
           <div className="flex items-center justify-between mb-2">
             <span className="text-lg font-bold">Solicitação</span>
-            <span className={`text-sm font-bold px-2 py-1 rounded-lg ${statusColorMap[data.status]}`}>{data.status}</span>
+            <span className={`text-sm font-bold px-2 py-1 rounded-lg ${statusColorMap[detailsData.status]}`}>{detailsData.status}</span>
           </div>
           <div className="grid grid-cols-2 gap-x-6 gap-y-2">
             <div className="flex flex-col">
               <span className="sm:text-xs font-bold mt-1">Cliente</span>
-              <span>{data.cliente}</span>
+              <span>{detailsData.cliente}</span>
             </div>
             <div className="flex flex-col">
               <span className="sm:text-xs font-bold mt-1">Data</span>
-              <span>{data.data}</span>
+              <span>{detailsData.data}</span>
             </div>
           </div>
           <span className="sm:text-xs font-bold my-1">Carga</span>
           <Shape className="bg-gray-50 sm:pl-3 sm:pt-3 md:h-full">
-            <PackageList packages={data.pacotes} />
+            <PackageList packages={detailsData.pacotes} />
           </Shape>
         </Shape>
-        <AdressList adress={addresses[0]} title="Endereço de Origem" />
-        <AdressList adress={addresses[1]} title="Endereço de Destino" />
+        <AdressList adress={detailsData.origem} title="Endereço de Origem" />
+        <AdressList adress={detailsData.destino} title="Endereço de Destino" />
       </div>
       {(
         isPending ? (
@@ -399,16 +562,16 @@ function ModalOrders({ open, data, onClose, setRowId, setIsAcceptModalOpen, setI
               <ButtonText className="text-center">Fechar</ButtonText>
             </Button>
             <Button className="bg-red-50 text-danger-base lg:w-50 sm:mt-2" onClick={() => {
-              if(isPending) {
-                setRowId(localStorageUtils.getItem("solicitacoes-admin").findIndex(info => info.id == data.id));
+              if (isPending) {
+                setRowId(detailsData.id);
                 setIsDeleteModalOpen(true);
               }
             }}>
               <ButtonText className="text-center">Recusar</ButtonText>
             </Button>
             <Button className="bg-red-tx lg:w-50 sm:mt-2" onClick={() => {
-              if(isPending) {
-                setRowId(localStorageUtils.getItem("solicitacoes-admin").findIndex(info => info.id == data.id));
+              if (isPending) {
+                setRowId(detailsData.id);
                 setIsAcceptModalOpen(true);
               }
             }}>
@@ -438,7 +601,7 @@ export function DatePickerDemo({ filterDate }) {
           data-empty={!date.length}
           className=" hover:cursor-pointer data-[empty=true]:text-muted-foreground w-auto h-auto text-left inline-flex items-center justify-center gap-2 rounded-md font-medium disabled:pointer-events-none border bg-background hover:bg-accent hover:text-accent-foreground sm:h-9 py-2 has-[>svg]:px-3"
         >
-          <CalendarIcon size="20"/>
+          <CalendarIcon size="20" />
           Escolher data
           <ChevronDown />
         </Button>
@@ -447,7 +610,7 @@ export function DatePickerDemo({ filterDate }) {
         <Calendar mode="multiple" selected={date} onSelect={setDate} className="rounded-2xl border border-gray-00" />
         <ButtonShad
           className={`float-end mt-1 bg-red-tx hover:cursor-pointer hover:bg-red-tx hover:text-white hover:shadow-none`}
-          onClick={() => { 
+          onClick={() => {
             filterDate(dateString(date));
             setOpen(false);
           }}>
@@ -459,47 +622,45 @@ export function DatePickerDemo({ filterDate }) {
 }
 
 function PackageList({ packages }) {
-  const mocks = [
-    { loadType: "caixa", width: 20, height: 20, length: 20, weight: 2 },
-    { loadType: "sacola", weight: 3, amount: 2 },
-    { loadType: "envelope", amount: 5 },
-  ];
-
-  const info = packages.length === 0 ? mocks : packages;
-
-return (
-  <div className="flex flex-col gap-2">
-    {info.map((pkg, index) => (
-      <div
-        key={index}
-        className="flex gap-x-2 gap-y-1 md:flex md:flex-row md:items-center md:gap-x-4 pb-1 border-b border-gray-100"
-      >
-      
-        <span className="flex items-center">
-          {pkg.loadType === "caixa" && <Package size={25} className="self-center" />}
-          {pkg.loadType === "envelope" && <File size={25} className="self-center" />}
-          {pkg.loadType === "sacola" && <ToteSimple size={25} className="self-center" />}
-        </span>
-        <div className={`gap-x-2 text-base ${styles.packInfo}`}>
-          <div className="flex gap-x-2">
-            <span className="capitalize">{pkg.loadType}</span>
-            <span>{`${pkg.width || 0}x${pkg.height || 0}x${pkg.length || 0}cm`}</span>
-          </div>
-          <div className="flex gap-x-2">
-            <span >{`${pkg.weight || 0}kg`}</span>
-            <span>Qtd:{pkg.amount || 1}</span>
+  return (
+    <div className="flex flex-col gap-2">
+      {packages.map((pkg, index) => (
+        <div
+          key={index}
+          className="flex gap-x-2 gap-y-1 md:flex md:flex-row md:items-center md:gap-x-4 pb-1 border-b border-gray-100"
+        >
+          <span className="flex items-center">
+            {pkg.loadType === "caixa" && <Package size={25} className="self-center" />}
+            {pkg.loadType === "envelope" && <File size={25} className="self-center" />}
+            {pkg.loadType === "sacola" && <ToteSimple size={25} className="self-center" />}
+          </span>
+          <div className={`gap-x-2 text-base ${styles.packInfo}`}>
+            <div className="flex gap-x-2">
+              <span className="capitalize">{pkg.loadType}</span>
+              <span>{`${pkg.width || 0}x${pkg.height || 0}x${pkg.length || 0}cm`}</span>
+            </div>
+            <div className="flex gap-x-2">
+              <span >{`${pkg.weight || 0}kg`}</span>
+              <span>Qtd:{pkg.amount || 1}</span>
+            </div>
           </div>
         </div>
-      </div>
-    ))}
-  </div>
-);
+      ))}
+    </div>
+  );
 }
 
 function AdressList({ adress, title }) {
   const labels = ["CEP", "Estado", "Cidade", "Bairro", "Rua", "Número"];
-
-  const mocks = ["87808-500", "Paraná", "Paranavaí", "Fenda do Biquini", "Rua 10", "7"];
+  
+  const addressValues = [
+    adress?.cep || "",
+    adress?.estado || "",
+    adress?.cidade || "",
+    adress?.bairro || "",
+    adress?.rua || "",
+    adress?.numero || ""
+  ];
 
   return (
     <Shape className="border-gray-600 border-1 sm:pt-2 sm:pb-5 sm:pl-4 lg:max-w-70 lg:mt-0 md:max-w-90">
@@ -507,7 +668,7 @@ function AdressList({ adress, title }) {
       {labels.map((label, index) => (
         <div className="flex flex-col mt-3" key={index}>
           <span className="sm:text-xs font-bold">{label}</span>
-          <span className="text-base">{adress.length ?? mocks[index]}</span>
+          <span className="text-base">{addressValues[index]}</span>
         </div>
       ))}
     </Shape>
