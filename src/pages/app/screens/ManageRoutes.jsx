@@ -270,7 +270,7 @@ function RoutesDataTable() {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
+                  Carregando rotas atendidas...
                 </TableCell>
               </TableRow>
             )}
