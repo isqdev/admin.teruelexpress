@@ -131,9 +131,10 @@ const CardsWithPaginationAndLocalStorage = () => {
           Nenhuma avaliação encontrada.
         </p>
       )}
-      <div className=" grid grid-cols-1 lg:grid-cols-2 gap-4 ">
+      <div className=" grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch hover:cursor-pointer ">
         {items.map((item) => (
-          <div key={item.id} className="sm:mx-0 shadow-md p-4 rounded-2xl hover:scale-101 hover:cursor-pointer transition duration-200" onClick={() => openModal(item.avaliacao)}>
+          <div key={item.id} className="sm:mx-0 shadow-md p-4 rounded-2xl hover:scale-101 hover:cursor-pointer transition duration-200" 
+          onClick={() => openModal(item.avaliacao)}>
             <div className="flex items-center mb-2">
               <div className=" w-16 h-16 rounded-full  bg-gray-50  items-center justify-center"></div>
               <div className="pl-2">

@@ -1,5 +1,8 @@
-import { House, Package, Truck, Cube, Star } from "phosphor-react"
+import { House, Package, Truck, Cube, Star, SignOut } from "phosphor-react"
 import { useLocation } from "react-router-dom"
+import Cookies from 'js-cookie';
+
+
 
 import {
   Sidebar,
@@ -45,6 +48,11 @@ export function AppSidebar() {
     }
   }
 
+  function handleLogout() {
+    Cookies.remove('token', { path: '/' });
+    navigate('/');
+  }
+
   return (
     <Sidebar>
       <SidebarContent>
@@ -68,6 +76,16 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 )
               })}
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={handleLogout}
+                  className="h-10 text-red-600 hover:bg-red-100 flex items-center gap-2"
+                >
+                  <SignOut size={20} />
+                  <span className="text-base">Sair</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
